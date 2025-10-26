@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Витрина визиток</title>
 <style>
   :root{
@@ -28,10 +28,14 @@
       radial-gradient(700px 520px at 40% 40%, rgba(255,255,255,.06), rgba(255,255,255,.02));
     box-shadow:0 24px 60px rgba(0,0,0,.55);
     position:relative;
+    cursor:default;
   }
+  /* фото */
   .photoWrap{ border-radius:28px; padding:18px; background:linear-gradient(180deg,#121826,#0c111b);
              box-shadow:inset 0 0 0 1px #273040 }
   .photo{ width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:22px; background:#0a0a0a }
+
+  /* текст */
   .name{ margin:0; line-height:1.03; font-weight:800; font-size:clamp(40px,5.8vw,84px) }
   .role{ margin:.45em 0 1.1em; color:var(--muted); font-size:clamp(16px,2.2vw,26px) }
   .contacts{ display:flex; gap:16px 28px; flex-wrap:wrap; margin:0 0 18px }
@@ -43,48 +47,52 @@
            font-size:clamp(13px,1.3vw,16px) }
   .sec p{ margin:0; color:#E8EEF6; font-size:clamp(15px,1.7vw,20px); line-height:1.5; white-space:pre-wrap }
   .strip{ position:absolute; left:0; right:0; bottom:0; padding:14px 24px; text-align:center;
-          background:linear-gradient(90deg,var(--c2),var(--c3)); font-weight:800; letter-spacing:.02em; text-transform:uppercase }
+          background:linear-gradient(90deg,var(--c2),var(--c3)); font-weight:800; letter-spacing:.02em;
+          text-transform:uppercase; font-size:clamp(12px,1.4vw,16px) }
+
   .fade{ animation:fade .45s ease-out }
   @keyframes fade{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
-  /* мобильные правки — макет как в рефе, но компактнее */
-@media (max-width: 780px){
-  .card{
-    grid-template-columns: 1fr;    /* фото сверху, текст ниже */
-    padding: 20px 18px;
-    gap: 18px;
-    min-height: auto;
-  }
-  .photoWrap{
-    order: -1;                      /* фото первым */
-    max-width: 84vw;
-    margin: 0 auto;
-    padding: 12px;
-    border-radius: 22px;
-  }
-  .photo{ border-radius: 16px; }
 
-  .name{
-    font-size: clamp(28px, 8vw, 40px);
-    line-height: 1.08;
-    word-wrap: anywhere;
-    hyphens: auto;
+  /* мобильные правки */
+  @media (max-width: 780px){
+    .card{
+      grid-template-columns: 1fr;
+      padding: 20px 18px;
+      gap: 18px;
+      min-height: auto;
+    }
+    .photoWrap{
+      order: -1;
+      max-width: 84vw;
+      margin: 0 auto;
+      padding: 12px;
+      border-radius: 22px;
+    }
+    .photo{ border-radius: 16px; }
+    .name{
+      font-size: clamp(28px, 8vw, 40px);
+      line-height: 1.08;
+      word-wrap: anywhere;
+      hyphens: auto;
+    }
+    .role{ font-size: clamp(14px, 4.2vw, 18px); margin:.35em 0 1em; }
+    .contacts{ gap: 10px 14px; }
+    .pill{ font-size: 14px; }
+    .sec h3{ font-size: 13px; }
+    .sec p{ font-size: 15px; line-height: 1.45; }
+    .strip{ padding: 10px 12px; font-size: 12px; }
   }
-  .role{ font-size: clamp(14px, 4.2vw, 18px); margin: .35em 0 1em; }
-  .contacts{ gap: 10px 14px; }
-  .pill{ font-size: 14px; }
-  .sec h3{ font-size: 13px; }
-  .sec p{ font-size: 15px; line-height: 1.45; }
-  .strip{ padding: 10px 12px; font-size: 12px; }
-}
 
-/* чтобы длинные слова/линки не ломали ширину */
-.name, .role, .sec p, .pill{ word-break: break-word; overflow-wrap: anywhere; }
+  /* длинные строки не ломают сетку */
+  .name, .role, .sec p, .pill{ word-break: break-word; overflow-wrap: anywhere; }
 
+  .msg{position:fixed;left:12px;bottom:12px;background:#1a2231;border:1px solid #2c3650;
+       color:#cfe0ff;padding:10px 12px;border-radius:10px;font-size:14px;max-width:520px;z-index:10}
 </style>
 </head>
 <body>
 <main class="stage">
-  <section class="card fade" id="card">
+  <section class="card fade" id="card" title="Клик — пауза/продолжить. Свайп ←/→ на телефоне.">
     <div class="photoWrap"><img id="ph" class="photo" alt=""></div>
     <div class="right">
       <h1 id="nm" class="name">Имя<br>Фамилия</h1>
@@ -116,18 +124,16 @@
 <div id="msg" class="msg" style="display:none"></div>
 
 <script>
-  /* === 1) OpenSheet JSON (поменяй при необходимости) === */
+  /* === Настрой: OpenSheet JSON === */
   const SHEET_JSON_URL =
     'https://opensheet.elk.sh/1TAPC4-82xwqNfPZ3NRCa06Y1FvYVx2YaTn6DArUgU2I/Sheet1';
 
-  /* === 2) Настройки === */
-  const ROTATE_MS = 10000;   // время показа одной визитки
-  const RELOAD_MS = 60000;   // частота перечитывания таблицы
+  const RELOAD_MS = 60000;   // перечитывать таблицу раз в минуту
 
-  /* === 3) Утилиты === */
+  /* === Утилиты === */
   const showMsg = (t) => { const m = document.getElementById('msg'); m.textContent = t; m.style.display='block'; };
 
-  // Находим колонку по частям названия (регистр не важен)
+  // Находим колонку по частям названия
   const findKey = (row, parts) => {
     const keys = Object.keys(row), low = keys.map(k => k.toLowerCase());
     for (let i=0;i<keys.length;i++){
@@ -136,7 +142,7 @@
     return null;
   };
 
-  // Преобразуем ссылку Drive к прямой; export=view чуть реже ловит 403
+  // Переводим drive-ссылку в прямую; export=view реже ловит 403 (но права на файл всё равно нужны!)
   const toDirectDrive = (url='') => {
     if (!url) return '';
     const m1 = url.match(/[\?&]id=([^&]+)/i);
@@ -145,17 +151,15 @@
     return id ? `https://drive.google.com/uc?export=view&id=${id}` : url;
   };
 
-  // Формируем объект строки (гибко к названиям столбцов)
+  // Маппинг данных
   const pick = r => {
     const aboutK = findKey(r,['обо','мне']) || findKey(r,['о','себе']);
     const askK   = findKey(r,['профессион','запрос']) || findKey(r,['цель']) || findKey(r,['запрос']);
     const photoK = findKey(r,['photo_direct']) || findKey(r,['прикрепите','фото']);
-
     const role = [
       findKey(r,['должн']) ? r[findKey(r,['должн'])] : '',
       findKey(r,['место','работ']) ? r[findKey(r,['место','работ'])] : (findKey(r,['компан']) ? r[findKey(r,['компан'])] : '')
     ].filter(Boolean).join(', ').replace(/(^, |, $)/g,'');
-
     const apprK  = findKey(r,['approved']) || 'approved';
 
     return {
@@ -179,62 +183,110 @@
     return 'https://'+v.replace(/^t\.me\//i,'t.me/');
   };
 
-  /* === 4) Основная логика === */
-  let data=[], idx=-1, timer;
+  /* === Слайдер: адаптивная длительность, пауза/свайпы === */
+  let data = [], idx = -1;
+  let timer = null, paused = false, touchX = null;
+  let currentHoldMs = 12000;
+
+  const isMobile = () => window.matchMedia('(max-width: 780px)').matches;
+  function estimateHoldMs(row){
+    const text = (row.about || '') + ' ' + (row.ask || '');
+    const base = isMobile() ? 16000 : 12000; // базовое
+    const perChar = isMobile() ? 40 : 30;    // мс на символ текста
+    const est = base + text.length * perChar;
+    return Math.max(10000, Math.min(45000, est)); // 10–30 сек
+  }
+
+  function scheduleNext(){
+    clearInterval(timer);
+    if (paused) return;
+    timer = setInterval(() => { if (!paused) next(); }, currentHoldMs);
+  }
 
   async function load(){
     try{
       const res = await fetch(SHEET_JSON_URL, {cache:'no-store'});
       const json = await res.json();
-
       if (!Array.isArray(json)) {
-        console.error('OpenSheet error response:', json);
-        showMsg('Не могу прочитать данные из таблицы (OpenSheet вернул ошибку). ' +
-                'Проверь: доступ «Все по ссылке: читатель» и имя листа в URL.');
+        console.error('OpenSheet error:', json);
+        showMsg('Не могу прочитать таблицу. Проверь доступ «все по ссылке: читатель» и имя листа в URL.');
         return;
       }
-
       data = json.map(pick).filter(x=>x.approved);
-      if (!data.length) {
+      if (!data.length){
         showMsg('Нет записей с approved = TRUE.');
         return;
       }
-
       data.sort(()=>Math.random()-0.5);
-      idx=-1; next();
-      clearInterval(timer); timer=setInterval(next, ROTATE_MS);
+      idx = -1;
+      next();
     }catch(e){
-      console.error('Load error:', e);
-      showMsg('Ошибка загрузки. Проверь интернет/доступ к таблице.');
+      console.error(e);
+      showMsg('Ошибка загрузки. Проверь сеть/доступ к таблице.');
     }
   }
 
-  function next(){
+  function next(forcedIndex){
     if (!data.length) return;
-    idx = (idx+1)%data.length;
+    if (typeof forcedIndex === 'number') {
+      idx = (forcedIndex + data.length) % data.length;
+    } else {
+      idx = (idx + 1) % data.length;
+    }
     const r = data[idx];
 
+    // анимация
     const card = document.getElementById('card');
     card.classList.remove('fade'); void card.offsetWidth; card.classList.add('fade');
 
+    // имя в две строки
     const full = [r.name, r.surname].filter(Boolean);
-    document.getElementById('nm').innerHTML = full.length>=2 ? `${full[0]}<br>${full.slice(1).join(' ')}` : (full[0]||'Гость форума');
+    document.getElementById('nm').innerHTML =
+      full.length >= 2 ? `${full[0]}<br>${full.slice(1).join(' ')}` : (full[0] || 'Гость форума');
 
     document.getElementById('rl').textContent = r.role || '';
     document.getElementById('about').textContent = r.about || '';
-    document.getElementById('ask').textContent   = r.ask   || '';
+    document.getElementById('ask').textContent = r.ask || '';
     document.getElementById('ph').src = r.photo || '';
 
+    // контакты
     const tel = document.getElementById('telPill');
     const mail= document.getElementById('mailPill');
     const tg  = document.getElementById('tgPill');
 
     if (r.phone){ tel.href='tel:'+r.phone; document.getElementById('telTxt').textContent='+'+r.phone.replace(/^\+?/,''); tel.style.display='flex'; } else tel.style.display='none';
     if (r.mail){  mail.href='mailto:'+r.mail; document.getElementById('mailTxt').textContent=r.mail; mail.style.display='flex'; } else mail.style.display='none';
-
     const tgUrl = fmtTG(r.tg);
     if (tgUrl){ tg.href=tgUrl; document.getElementById('tgTxt').textContent=tgUrl.replace(/^https?:\/\//,''); tg.style.display='flex'; } else tg.style.display='none';
+
+    currentHoldMs = estimateHoldMs(r);
+    scheduleNext();
   }
+
+  // автопауза по видимости вкладки
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden){ paused = true; clearInterval(timer); }
+    else { paused = false; scheduleNext(); }
+  });
+
+  // пауза/продолжить кликом
+  const cardEl = document.getElementById('card');
+  cardEl.addEventListener('click', () => {
+    paused = !paused;
+    if (paused) clearInterval(timer); else scheduleNext();
+  });
+
+  // свайпы ←/→
+  cardEl.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, {passive:true});
+  cardEl.addEventListener('touchend', e => {
+    if (touchX == null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    touchX = null;
+    if (Math.abs(dx) < 40) return;
+    clearInterval(timer);
+    if (dx < 0) next();
+    else next((idx - 1 + data.length) % data.length);
+  });
 
   load();
   setInterval(load, RELOAD_MS);
