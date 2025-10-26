@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Витрина визиток</title>
+<style>
+  :root{
+    --bg:#0b0e13; --txt:#fff; --muted:#C7D0DB;
+    --c1:#00E0C7; --c2:#5A7CE7; --c3:#E33D8C;
+  }
+  *{box-sizing:border-box}
+  html,body{
+    height:100%; margin:0; color:var(--txt);
+    font-family: Inter, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 68% 8%, rgba(90,124,231,.35), transparent 60%),
+      radial-gradient(900px 520px at 16% 90%, rgba(227,61,140,.20), transparent 60%),
+      #0b0e13;
+  }
+  .stage{min-height:100vh; display:grid; place-items:center; padding:28px}
+  .card{
+    width:min(1280px, 96vw); min-height:620px;
+    display:grid; grid-template-columns: 410px 1fr; gap:40px; align-items:start;
+    padding:36px 40px; border-radius:28px; overflow:hidden;
+    background:
+      radial-gradient(900px 680px at 72% 10%, rgba(90,124,231,.35), transparent 55%),
+      radial-gradient(700px 520px at 40% 40%, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    box-shadow:0 24px 60px rgba(0,0,0,.55);
+    position:relative;
+  }
+  .photoWrap{ border-radius:28px; padding:18px; background:linear-gradient(180deg,#121826,#0c111b);
+             box-shadow:inset 0 0 0 1px #273040 }
+  .photo{ width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:22px; background:#0a0a0a }
+  .name{ margin:0; line-height:1.03; font-weight:800; font-size:clamp(40px,5.8vw,84px) }
+  .role{ margin:.45em 0 1.1em; color:var(--muted); font-size:clamp(16px,2.2vw,26px) }
+  .contacts{ display:flex; gap:16px 28px; flex-wrap:wrap; margin:0 0 18px }
+  .pill{ display:flex; align-items:center; gap:10px; color:#eaf6ff; text-decoration:none;
+        font-size:clamp(14px,1.6vw,20px) }
+  .pill svg{ width:20px; height:20px; opacity:.9; flex:0 0 20px }
+  .sec{ margin-top:18px }
+  .sec h3{ margin:.2em 0 .4em; color:#9AF4EA; text-transform:uppercase; letter-spacing:.06em;
+           font-size:clamp(13px,1.3vw,16px) }
+  .sec p{ margin:0; color:#E8EEF6; font-size:clamp(15px,1.7vw,20px); line-height:1.5; white-space:pre-wrap }
+  .strip{ position:absolute; left:0; right:0; bottom:0; padding:14px 24px; text-align:center;
+          background:linear-gradient(90deg,var(--c2),var(--c3)); font-weight:800; letter-spacing:.02em; text-transform:uppercase }
+  .fade{ animation:fade .45s ease-out }
+  @keyframes fade{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
+  @media (max-width:1000px){ .card{grid-template-columns:1fr; padding:22px; gap:22px}
+    .photoWrap{max-width:420px; margin:0 auto} }
+  .msg{position:fixed;left:12px;bottom:12px;background:#1a2231;border:1px solid #2c3650;
+       color:#cfe0ff;padding:10px 12px;border-radius:10px;font-size:14px;max-width:520px}
+</style>
+</head>
+<body>
+<main class="stage">
+  <section class="card fade" id="card">
+    <div class="photoWrap"><img id="ph" class="photo" alt=""></div>
+    <div class="right">
+      <h1 id="nm" class="name">Имя<br>Фамилия</h1>
+      <div id="rl" class="role">Должность, Компания</div>
+
+      <div class="contacts">
+        <a class="pill" id="telPill" href="#" target="_blank" rel="noopener" style="display:none">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.2 1.3.5 2.7.8 4.1.8.7 0 1.3.6 1.3 1.3V21c0 .7-.6 1.3-1.3 1.3C9.8 22.3 1.7 14.2 1.7 3.3 1.7 2.6 2.3 2 3 2h3.7c.7 0 1.3.6 1.3 1.3 0 1.4.3 2.8.8 4.1.1.4 0 .9-.3 1.2l-2 2.2z"/></svg>
+          <span id="telTxt"></span>
+        </a>
+        <a class="pill" id="mailPill" href="#" target="_blank" rel="noopener" style="display:none">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 13 1.5 6.75V18a2 2 0 0 0 2 2h17a2 2 0 0 0 2-2V6.75L12 13zm0-2.5L22.5 4H1.5L12 10.5z"/></svg>
+          <span id="mailTxt"></span>
+        </a>
+        <a class="pill" id="tgPill" href="#" target="_blank" rel="noopener" style="display:none">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.04 15.34 8.9 18.9c.41 0 .59-.18.81-.4l1.94-1.86 4.02 2.95c.74.41 1.26.2 1.46-.69l2.64-12.41c.27-1.25-.45-1.73-1.17-1.43L3.4 9.55c-1.2.47-1.18 1.14-.2 1.45l4.9 1.53 11.37-7.17c.53-.33 1.01-.15.61.18L9.04 15.34z"/></svg>
+          <span id="tgTxt"></span>
+        </a>
+      </div>
+
+      <div class="sec"><h3>О себе:</h3><p id="about">—</p></div>
+      <div class="sec"><h3>Запрос:</h3><p id="ask">—</p></div>
+    </div>
+
+    <div class="strip">ДЛЯ РАЗМЕЩЕНИЯ ВАШЕЙ ВИЗИТКИ НА ЭТОМ ЭКРАНЕ ПОДОЙДИТЕ НА СТЕНД ИНССМАРТ</div>
+  </section>
+</main>
+
+<div id="msg" class="msg" style="display:none"></div>
+
+<script>
+  /* === 1) OpenSheet JSON (поменяй при необходимости) === */
+  const SHEET_JSON_URL =
+    'https://opensheet.elk.sh/1TAPC4-82xwqNfPZ3NRCa06Y1FvYVx2YaTn6DArUgU2I/Sheet1';
+
+  /* === 2) Настройки === */
+  const ROTATE_MS = 10000;   // время показа одной визитки
+  const RELOAD_MS = 60000;   // частота перечитывания таблицы
+
+  /* === 3) Утилиты === */
+  const showMsg = (t) => { const m = document.getElementById('msg'); m.textContent = t; m.style.display='block'; };
+
+  // Находим колонку по частям названия (регистр не важен)
+  const findKey = (row, parts) => {
+    const keys = Object.keys(row), low = keys.map(k => k.toLowerCase());
+    for (let i=0;i<keys.length;i++){
+      if (parts.every(p => low[i].includes(p))) return keys[i];
+    }
+    return null;
+  };
+
+  // Преобразуем ссылку Drive к прямой; export=view чуть реже ловит 403
+  const toDirectDrive = (url='') => {
+    if (!url) return '';
+    const m1 = url.match(/[\?&]id=([^&]+)/i);
+    const m2 = url.match(/\/d\/([^/]+)/i);
+    const id = (m1 && m1[1]) || (m2 && m2[1]) || '';
+    return id ? `https://drive.google.com/uc?export=view&id=${id}` : url;
+  };
+
+  // Формируем объект строки (гибко к названиям столбцов)
+  const pick = r => {
+    const aboutK = findKey(r,['обо','мне']) || findKey(r,['о','себе']);
+    const askK   = findKey(r,['профессион','запрос']) || findKey(r,['цель']) || findKey(r,['запрос']);
+    const photoK = findKey(r,['photo_direct']) || findKey(r,['прикрепите','фото']);
+
+    const role = [
+      findKey(r,['должн']) ? r[findKey(r,['должн'])] : '',
+      findKey(r,['место','работ']) ? r[findKey(r,['место','работ'])] : (findKey(r,['компан']) ? r[findKey(r,['компан'])] : '')
+    ].filter(Boolean).join(', ').replace(/(^, |, $)/g,'');
+
+    const apprK  = findKey(r,['approved']) || 'approved';
+
+    return {
+      name:    findKey(r,['имя']) ? r[findKey(r,['имя'])] : '',
+      surname: findKey(r,['фамил']) ? r[findKey(r,['фамил'])] : '',
+      role,
+      about:   aboutK ? r[aboutK] : '',
+      ask:     askK ? r[askK] : '',
+      mail:    findKey(r,['адрес','электрон']) ? r[findKey(r,['адрес','электрон'])] : '',
+      phone:   findKey(r,['номер','тел']) ? (r[findKey(r,['номер','тел'])]+'').replace(/\s+/g,'') : '',
+      tg:      findKey(r,['ник','телеграм']) ? r[findKey(r,['ник','телеграм'])] : (findKey(r,['telegram']) ? r[findKey(r,['telegram'])] : ''),
+      photo:   toDirectDrive(photoK ? r[photoK] : ''),
+      approved: ((r[apprK]||'')+'').toLowerCase().trim()==='true'
+    };
+  };
+
+  const fmtTG = v => {
+    if (!v) return '';
+    if (/^https?:\/\//i.test(v)) return v;
+    if (v.startsWith('@')) return 'https://t.me/'+v.slice(1);
+    return 'https://'+v.replace(/^t\.me\//i,'t.me/');
+  };
+
+  /* === 4) Основная логика === */
+  let data=[], idx=-1, timer;
+
+  async function load(){
+    try{
+      const res = await fetch(SHEET_JSON_URL, {cache:'no-store'});
+      const json = await res.json();
+
+      if (!Array.isArray(json)) {
+        console.error('OpenSheet error response:', json);
+        showMsg('Не могу прочитать данные из таблицы (OpenSheet вернул ошибку). ' +
+                'Проверь: доступ «Все по ссылке: читатель» и имя листа в URL.');
+        return;
+      }
+
+      data = json.map(pick).filter(x=>x.approved);
+      if (!data.length) {
+        showMsg('Нет записей с approved = TRUE.');
+        return;
+      }
+
+      data.sort(()=>Math.random()-0.5);
+      idx=-1; next();
+      clearInterval(timer); timer=setInterval(next, ROTATE_MS);
+    }catch(e){
+      console.error('Load error:', e);
+      showMsg('Ошибка загрузки. Проверь интернет/доступ к таблице.');
+    }
+  }
+
+  function next(){
+    if (!data.length) return;
+    idx = (idx+1)%data.length;
+    const r = data[idx];
+
+    const card = document.getElementById('card');
+    card.classList.remove('fade'); void card.offsetWidth; card.classList.add('fade');
+
+    const full = [r.name, r.surname].filter(Boolean);
+    document.getElementById('nm').innerHTML = full.length>=2 ? `${full[0]}<br>${full.slice(1).join(' ')}` : (full[0]||'Гость форума');
+
+    document.getElementById('rl').textContent = r.role || '';
+    document.getElementById('about').textContent = r.about || '';
+    document.getElementById('ask').textContent   = r.ask   || '';
+    document.getElementById('ph').src = r.photo || '';
+
+    const tel = document.getElementById('telPill');
+    const mail= document.getElementById('mailPill');
+    const tg  = document.getElementById('tgPill');
+
+    if (r.phone){ tel.href='tel:'+r.phone; document.getElementById('telTxt').textContent='+'+r.phone.replace(/^\+?/,''); tel.style.display='flex'; } else tel.style.display='none';
+    if (r.mail){  mail.href='mailto:'+r.mail; document.getElementById('mailTxt').textContent=r.mail; mail.style.display='flex'; } else mail.style.display='none';
+
+    const tgUrl = fmtTG(r.tg);
+    if (tgUrl){ tg.href=tgUrl; document.getElementById('tgTxt').textContent=tgUrl.replace(/^https?:\/\//,''); tg.style.display='flex'; } else tg.style.display='none';
+  }
+
+  load();
+  setInterval(load, RELOAD_MS);
+</script>
+</body>
+</html>
