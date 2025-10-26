@@ -30,12 +30,11 @@
     position:relative;
     cursor:default;
   }
-  /* фото */
+  .card.hidden{visibility:hidden}
   .photoWrap{ border-radius:28px; padding:18px; background:linear-gradient(180deg,#121826,#0c111b);
              box-shadow:inset 0 0 0 1px #273040 }
   .photo{ width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:22px; background:#0a0a0a }
 
-  /* текст */
   .name{ margin:0; line-height:1.03; font-weight:800; font-size:clamp(40px,5.8vw,84px) }
   .role{ margin:.45em 0 1.1em; color:var(--muted); font-size:clamp(16px,2.2vw,26px) }
   .contacts{ display:flex; gap:16px 28px; flex-wrap:wrap; margin:0 0 18px }
@@ -53,7 +52,6 @@
   .fade{ animation:fade .45s ease-out }
   @keyframes fade{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
 
-  /* мобильные правки */
   @media (max-width: 780px){
     .card{
       grid-template-columns: 1fr;
@@ -83,7 +81,6 @@
     .strip{ padding: 10px 12px; font-size: 12px; }
   }
 
-  /* длинные строки не ломают сетку */
   .name, .role, .sec p, .pill{ word-break: break-word; overflow-wrap: anywhere; }
 
   .msg{position:fixed;left:12px;bottom:12px;background:#1a2231;border:1px solid #2c3650;
@@ -92,7 +89,7 @@
 </head>
 <body>
 <main class="stage">
-  <section class="card fade" id="card" title="Клик — пауза/продолжить. Свайп ←/→ на телефоне.">
+  <section class="card fade hidden" id="card">
     <div class="photoWrap"><img id="ph" class="photo" alt=""></div>
     <div class="right">
       <h1 id="nm" class="name">Имя<br>Фамилия</h1>
@@ -124,172 +121,133 @@
 <div id="msg" class="msg" style="display:none"></div>
 
 <script>
-  /* === Настрой: OpenSheet JSON === */
-  const SHEET_JSON_URL =
-    'https://opensheet.elk.sh/1TAPC4-82xwqNfPZ3NRCa06Y1FvYVx2YaTn6DArUgU2I/Sheet1';
+const SHEET_JSON_URL =
+  'https://opensheet.elk.sh/1TAPC4-82xwqNfPZ3NRCa06Y1FvYVx2YaTn6DArUgU2I/Sheet1';
 
-  const RELOAD_MS = 60000;   // перечитывать таблицу раз в минуту
+const RELOAD_MS = 60000;
+const showMsg = (t) => { const m=document.getElementById('msg'); m.textContent=t; m.style.display='block'; };
 
-  /* === Утилиты === */
-  const showMsg = (t) => { const m = document.getElementById('msg'); m.textContent = t; m.style.display='block'; };
-
-  // Находим колонку по частям названия
-  const findKey = (row, parts) => {
-    const keys = Object.keys(row), low = keys.map(k => k.toLowerCase());
-    for (let i=0;i<keys.length;i++){
-      if (parts.every(p => low[i].includes(p))) return keys[i];
-    }
-    return null;
-  };
-
-  // Переводим drive-ссылку в прямую; export=view реже ловит 403 (но права на файл всё равно нужны!)
-  const toDirectDrive = (url='') => {
-    if (!url) return '';
-    const m1 = url.match(/[\?&]id=([^&]+)/i);
-    const m2 = url.match(/\/d\/([^/]+)/i);
-    const id = (m1 && m1[1]) || (m2 && m2[1]) || '';
-    return id ? `https://drive.google.com/uc?export=view&id=${id}` : url;
-  };
-
-  // Маппинг данных
-  const pick = r => {
-    const aboutK = findKey(r,['обо','мне']) || findKey(r,['о','себе']);
-    const askK   = findKey(r,['профессион','запрос']) || findKey(r,['цель']) || findKey(r,['запрос']);
-    const photoK = findKey(r,['photo_direct']) || findKey(r,['прикрепите','фото']);
-    const role = [
-      findKey(r,['должн']) ? r[findKey(r,['должн'])] : '',
-      findKey(r,['место','работ']) ? r[findKey(r,['место','работ'])] : (findKey(r,['компан']) ? r[findKey(r,['компан'])] : '')
-    ].filter(Boolean).join(', ').replace(/(^, |, $)/g,'');
-    const apprK  = findKey(r,['approved']) || 'approved';
-
-    return {
-      name:    findKey(r,['имя']) ? r[findKey(r,['имя'])] : '',
-      surname: findKey(r,['фамил']) ? r[findKey(r,['фамил'])] : '',
-      role,
-      about:   aboutK ? r[aboutK] : '',
-      ask:     askK ? r[askK] : '',
-      mail:    findKey(r,['адрес','электрон']) ? r[findKey(r,['адрес','электрон'])] : '',
-      phone:   findKey(r,['номер','тел']) ? (r[findKey(r,['номер','тел'])]+'').replace(/\s+/g,'') : '',
-      tg:      findKey(r,['ник','телеграм']) ? r[findKey(r,['ник','телеграм'])] : (findKey(r,['telegram']) ? r[findKey(r,['telegram'])] : ''),
-      photo:   toDirectDrive(photoK ? r[photoK] : ''),
-      approved: ((r[apprK]||'')+'').toLowerCase().trim()==='true'
-    };
-  };
-
-  const fmtTG = v => {
-    if (!v) return '';
-    if (/^https?:\/\//i.test(v)) return v;
-    if (v.startsWith('@')) return 'https://t.me/'+v.slice(1);
-    return 'https://'+v.replace(/^t\.me\//i,'t.me/');
-  };
-
-  /* === Слайдер: адаптивная длительность, пауза/свайпы === */
-  let data = [], idx = -1;
-  let timer = null, paused = false, touchX = null;
-  let currentHoldMs = 12000;
-
-  const isMobile = () => window.matchMedia('(max-width: 780px)').matches;
-  function estimateHoldMs(row){
-    const text = (row.about || '') + ' ' + (row.ask || '');
-    const base = isMobile() ? 16000 : 12000; // базовое
-    const perChar = isMobile() ? 40 : 30;    // мс на символ текста
-    const est = base + text.length * perChar;
-    return Math.max(10000, Math.min(45000, est)); // 10–30 сек
+const findKey=(r,parts)=>{
+  const keys=Object.keys(r),low=keys.map(k=>k.toLowerCase());
+  for(let i=0;i<keys.length;i++){
+    if(parts.every(p=>low[i].includes(p))) return keys[i];
   }
+  return null;
+};
 
-  function scheduleNext(){
-    clearInterval(timer);
-    if (paused) return;
-    timer = setInterval(() => { if (!paused) next(); }, currentHoldMs);
-  }
+const toDirectDrive=url=>{
+  if(!url) return '';
+  const m1=url.match(/[\?&]id=([^&]+)/i);
+  const m2=url.match(/\/d\/([^/]+)/i);
+  const id=(m1&&m1[1])||(m2&&m2[1])||'';
+  return id?`https://drive.google.com/uc?export=view&id=${id}`:url;
+};
 
-  async function load(){
-    try{
-      const res = await fetch(SHEET_JSON_URL, {cache:'no-store'});
-      const json = await res.json();
-      if (!Array.isArray(json)) {
-        console.error('OpenSheet error:', json);
-        showMsg('Не могу прочитать таблицу. Проверь доступ «все по ссылке: читатель» и имя листа в URL.');
-        return;
-      }
-      data = json.map(pick).filter(x=>x.approved);
-      if (!data.length){
-        showMsg('Нет записей с approved = TRUE.');
-        return;
-      }
-      data.sort(()=>Math.random()-0.5);
-      idx = -1;
-      next();
-    }catch(e){
-      console.error(e);
-      showMsg('Ошибка загрузки. Проверь сеть/доступ к таблице.');
-    }
-  }
+const pick=r=>{
+  const aboutK=findKey(r,['обо','мне'])||findKey(r,['о','себе']);
+  const askK=findKey(r,['профессион','запрос'])||findKey(r,['цель'])||findKey(r,['запрос']);
+  const photoK=findKey(r,['photo_direct'])||findKey(r,['прикрепите','фото']);
+  const role=[
+    findKey(r,['должн'])?r[findKey(r,['должн'])]:'',
+    findKey(r,['место','работ'])?r[findKey(r,['место','работ'])]:(findKey(r,['компан'])?r[findKey(r,['компан'])]:'')
+  ].filter(Boolean).join(', ').replace(/(^, |, $)/g,'');
+  const apprK=findKey(r,['approved'])||'approved';
+  return{
+    name:findKey(r,['имя'])?r[findKey(r,['имя'])]:'',
+    surname:findKey(r,['фамил'])?r[findKey(r,['фамил'])]:'',
+    role,
+    about:aboutK?r[aboutK]:'',
+    ask:askK?r[askK]:'',
+    mail:findKey(r,['адрес','электрон'])?r[findKey(r,['адрес','электрон'])]:'',
+    phone:findKey(r,['номер','тел'])?(r[findKey(r,['номер','тел'])]+'').replace(/\s+/g,''):'',
+    tg:findKey(r,['ник','телеграм'])?r[findKey(r,['ник','телеграм'])]:(findKey(r,['telegram'])?r[findKey(r,['telegram'])]:''),
+    photo:toDirectDrive(photoK?r[photoK]:''),
+    approved:((r[apprK]||'')+'').toLowerCase().trim()==='true'
+  };
+};
 
-  function next(forcedIndex){
-    if (!data.length) return;
-    if (typeof forcedIndex === 'number') {
-      idx = (forcedIndex + data.length) % data.length;
-    } else {
-      idx = (idx + 1) % data.length;
-    }
-    const r = data[idx];
+// фильтр валидных строк
+function isValidRow(r){
+  const trim=v=>(v||'').toString().trim();
+  const hasName=!!(trim(r.name)||trim(r.surname));
+  const hasAny=['role','about','ask','phone','mail','tg','photo'].some(k=>trim(r[k]));
+  return r.approved && hasName && hasAny;
+}
 
-    // анимация
-    const card = document.getElementById('card');
-    card.classList.remove('fade'); void card.offsetWidth; card.classList.add('fade');
+const fmtTG=v=>{
+  if(!v)return'';
+  if(/^https?:\/\//i.test(v))return v;
+  if(v.startsWith('@'))return'https://t.me/'+v.slice(1);
+  return'https://'+v.replace(/^t\.me\//i,'t.me/');
+};
 
-    // имя в две строки
-    const full = [r.name, r.surname].filter(Boolean);
-    document.getElementById('nm').innerHTML =
-      full.length >= 2 ? `${full[0]}<br>${full.slice(1).join(' ')}` : (full[0] || 'Гость форума');
+let data=[],idx=-1,timer=null,paused=false,touchX=null,currentHoldMs=12000;
+const isMobile=()=>window.matchMedia('(max-width: 780px)').matches;
+function estimateHoldMs(row){
+  const text=(row.about||'')+' '+(row.ask||'');
+  const base=isMobile()?16000:12000;
+  const perChar=isMobile()?40:30;
+  return Math.max(10000,Math.min(45000,base+text.length*perChar));
+}
+function scheduleNext(){
+  clearInterval(timer);
+  if(paused)return;
+  timer=setInterval(()=>{if(!paused)next();},currentHoldMs);
+}
 
-    document.getElementById('rl').textContent = r.role || '';
-    document.getElementById('about').textContent = r.about || '';
-    document.getElementById('ask').textContent = r.ask || '';
-    document.getElementById('ph').src = r.photo || '';
+async function load(){
+  try{
+    const res=await fetch(SHEET_JSON_URL,{cache:'no-store'});
+    const json=await res.json();
+    if(!Array.isArray(json)){showMsg('Ошибка чтения таблицы');return;}
+    data=json.map(pick).filter(isValidRow);
+    if(!data.length){showMsg('Нет записей с approved = TRUE');return;}
+    data.sort(()=>Math.random()-0.5);
+    idx=-1;next();
+  }catch(e){console.error(e);showMsg('Ошибка загрузки таблицы');}
+}
 
-    // контакты
-    const tel = document.getElementById('telPill');
-    const mail= document.getElementById('mailPill');
-    const tg  = document.getElementById('tgPill');
+function next(forcedIndex){
+  if(!data.length)return;
+  if(typeof forcedIndex==='number')idx=(forcedIndex+data.length)%data.length;
+  else idx=(idx+1)%data.length;
+  const r=data[idx];
+  const card=document.getElementById('card');
+  card.classList.remove('hidden');
+  card.classList.remove('fade');void card.offsetWidth;card.classList.add('fade');
+  const full=[r.name,r.surname].filter(Boolean);
+  document.getElementById('nm').innerHTML=
+    full.length>=2?`${full[0]}<br>${full.slice(1).join(' ')}`:(full[0]||'Гость форума');
+  document.getElementById('rl').textContent=r.role||'';
+  document.getElementById('about').textContent=r.about||'';
+  document.getElementById('ask').textContent=r.ask||'';
+  document.getElementById('ph').src=r.photo||'';
+  const tel=document.getElementById('telPill');
+  const mail=document.getElementById('mailPill');
+  const tg=document.getElementById('tgPill');
+  if(r.phone){tel.href='tel:'+r.phone;document.getElementById('telTxt').textContent='+'+r.phone.replace(/^\+?/,'');tel.style.display='flex';}else tel.style.display='none';
+  if(r.mail){mail.href='mailto:'+r.mail;document.getElementById('mailTxt').textContent=r.mail;mail.style.display='flex';}else mail.style.display='none';
+  const tgUrl=fmtTG(r.tg);
+  if(tgUrl){tg.href=tgUrl;document.getElementById('tgTxt').textContent=tgUrl.replace(/^https?:\/\//,'');tg.style.display='flex';}else tg.style.display='none';
+  currentHoldMs=estimateHoldMs(r);
+  scheduleNext();
+}
 
-    if (r.phone){ tel.href='tel:'+r.phone; document.getElementById('telTxt').textContent='+'+r.phone.replace(/^\+?/,''); tel.style.display='flex'; } else tel.style.display='none';
-    if (r.mail){  mail.href='mailto:'+r.mail; document.getElementById('mailTxt').textContent=r.mail; mail.style.display='flex'; } else mail.style.display='none';
-    const tgUrl = fmtTG(r.tg);
-    if (tgUrl){ tg.href=tgUrl; document.getElementById('tgTxt').textContent=tgUrl.replace(/^https?:\/\//,''); tg.style.display='flex'; } else tg.style.display='none';
-
-    currentHoldMs = estimateHoldMs(r);
-    scheduleNext();
-  }
-
-  // автопауза по видимости вкладки
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden){ paused = true; clearInterval(timer); }
-    else { paused = false; scheduleNext(); }
-  });
-
-  // пауза/продолжить кликом
-  const cardEl = document.getElementById('card');
-  cardEl.addEventListener('click', () => {
-    paused = !paused;
-    if (paused) clearInterval(timer); else scheduleNext();
-  });
-
-  // свайпы ←/→
-  cardEl.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, {passive:true});
-  cardEl.addEventListener('touchend', e => {
-    if (touchX == null) return;
-    const dx = e.changedTouches[0].clientX - touchX;
-    touchX = null;
-    if (Math.abs(dx) < 40) return;
-    clearInterval(timer);
-    if (dx < 0) next();
-    else next((idx - 1 + data.length) % data.length);
-  });
-
-  load();
-  setInterval(load, RELOAD_MS);
+document.addEventListener('visibilitychange',()=>{if(document.hidden){paused=true;clearInterval(timer);}else{paused=false;scheduleNext();}});
+const cardEl=document.getElementById('card');
+cardEl.addEventListener('click',()=>{paused=!paused;if(paused)clearInterval(timer);else scheduleNext();});
+cardEl.addEventListener('touchstart',e=>{touchX=e.touches[0].clientX;},{passive:true});
+cardEl.addEventListener('touchend',e=>{
+  if(touchX==null)return;
+  const dx=e.changedTouches[0].clientX-touchX;
+  touchX=null;
+  if(Math.abs(dx)<40)return;
+  clearInterval(timer);
+  if(dx<0)next();
+  else next((idx-1+data.length)%data.length);
+});
+load();
+setInterval(load,RELOAD_MS);
 </script>
 </body>
 </html>
