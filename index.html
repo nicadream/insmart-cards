@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Витрина визиток</title>
 <style>
   :root{
@@ -46,10 +46,40 @@
           background:linear-gradient(90deg,var(--c2),var(--c3)); font-weight:800; letter-spacing:.02em; text-transform:uppercase }
   .fade{ animation:fade .45s ease-out }
   @keyframes fade{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
-  @media (max-width:1000px){ .card{grid-template-columns:1fr; padding:22px; gap:22px}
-    .photoWrap{max-width:420px; margin:0 auto} }
-  .msg{position:fixed;left:12px;bottom:12px;background:#1a2231;border:1px solid #2c3650;
-       color:#cfe0ff;padding:10px 12px;border-radius:10px;font-size:14px;max-width:520px}
+  /* мобильные правки — макет как в рефе, но компактнее */
+@media (max-width: 780px){
+  .card{
+    grid-template-columns: 1fr;    /* фото сверху, текст ниже */
+    padding: 20px 18px;
+    gap: 18px;
+    min-height: auto;
+  }
+  .photoWrap{
+    order: -1;                      /* фото первым */
+    max-width: 84vw;
+    margin: 0 auto;
+    padding: 12px;
+    border-radius: 22px;
+  }
+  .photo{ border-radius: 16px; }
+
+  .name{
+    font-size: clamp(28px, 8vw, 40px);
+    line-height: 1.08;
+    word-wrap: anywhere;
+    hyphens: auto;
+  }
+  .role{ font-size: clamp(14px, 4.2vw, 18px); margin: .35em 0 1em; }
+  .contacts{ gap: 10px 14px; }
+  .pill{ font-size: 14px; }
+  .sec h3{ font-size: 13px; }
+  .sec p{ font-size: 15px; line-height: 1.45; }
+  .strip{ padding: 10px 12px; font-size: 12px; }
+}
+
+/* чтобы длинные слова/линки не ломали ширину */
+.name, .role, .sec p, .pill{ word-break: break-word; overflow-wrap: anywhere; }
+
 </style>
 </head>
 <body>
