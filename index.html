@@ -214,15 +214,29 @@ function estimateHoldMs(row){
 function scheduleNext(){ clearInterval(timer); if(paused) return; timer=setInterval(()=>{ if(!paused) next(); }, currentHoldMs); }
 
 async function load(){
+  async function load(){
   try{
-    const res=await fetch(SHEET_JSON_URL,{cache:'no-store'});
-    const json=await res.json();
-    if(!Array.isArray(json)){ showMsg('Не могу прочитать таблицу'); return; }
-    data=json.map(pick).filter(isValidRow);
-    if(!data.length){ showMsg('Нет записей с approved = TRUE'); return; }
+    // анти-кэш
+    const url = SHEET_JSON_URL + (SHEET_JSON_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
+    const res = await fetch(url, { cache: 'no-store' });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    if(!Array.isArray(json)) throw new Error('Bad JSON');
+
+    data = json.map(pick).filter(isValidRow);
+    if(!data.length){
+      document.getElementById('card').classList.remove('hidden');
+      showMsg('Нет валидных записей (проверь approved/заголовки).');
+      return;
+    }
     data.sort(()=>Math.random()-0.5);
-    idx=-1; next();
-  }catch(e){ console.error(e); showMsg('Ошибка загрузки. Проверь доступ к таблице.'); }
+    idx = -1;
+    next();
+  }catch(e){
+    console.error(e);
+    document.getElementById('card').classList.remove('hidden');
+    showMsg('Не удалось загрузить таблицу. Проверь доступ и ссылку OpenSheet.');
+  }
 }
 
 function next(forcedIndex){
