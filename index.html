@@ -30,17 +30,16 @@
   }
   .card.hidden{visibility:hidden}
 
-  /* Фото — без рамы, мягкая тень */
+  /* Фото — без «рамки»: без фона и без тени */
   .photoWrap{ padding:0; background:none; box-shadow:none; border-radius:22px }
   .photo{
     width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:22px; display:block;
-    box-shadow:0 14px 40px rgba(0,0,0,.45);
-    background:linear-gradient(180deg,#141923,#0b1119);
+    background:none;              /* убран тёмный фон */
+    box-shadow:none;              /* убрана тень-рамка */
   }
   .photo.is-broken{
     background:
-      radial-gradient(48px 48px at 50% 50%, rgba(255,255,255,.08) 40%, transparent 41%),
-      linear-gradient(180deg,#141923,#0b1119);
+      radial-gradient(48px 48px at 50% 50%, rgba(255,255,255,.08) 40%, transparent 41%);
   }
 
   .name{ margin:0; line-height:1.03; font-weight:800; font-size:clamp(40px,5.8vw,84px) }
@@ -59,23 +58,26 @@
           background:linear-gradient(90deg,var(--c2),var(--c3)); font-weight:800; letter-spacing:.02em;
           text-transform:uppercase; font-size:clamp(12px,1.4vw,16px) }
 
-  /* QR — мягкий бейдж справа */
+  /* QR — «встроенный» сайд-бейдж на правой кромке */
   .qrBox{
-    position:absolute; right:18px; top:18px; z-index:5;
-    padding:10px 12px; border-radius:14px;
-    background:rgba(18,22,30,.68);
-    border:1px solid rgba(255,255,255,.08);
-    backdrop-filter: blur(6px);
-    box-shadow:0 8px 24px rgba(0,0,0,.35);
-    display:flex; flex-direction:column; align-items:center; gap:6px;
+    position:absolute; right:-4px; top:50%; transform:translateY(-50%);
+    z-index:5; padding:12px 12px 10px 14px;
+    border-radius:16px 0 0 16px;
+    background:rgba(18,22,30,.60);
+    border-left:1px solid rgba(255,255,255,.10);
+    border-top:1px solid rgba(255,255,255,.06);
+    border-bottom:1px solid rgba(255,255,255,.06);
+    backdrop-filter: blur(8px);
+    box-shadow:0 12px 28px rgba(0,0,0,.45);
+    display:flex; flex-direction:column; align-items:center; gap:8px;
   }
-  .qrBox #qrCanvas canvas{ width:120px; height:120px; display:block }
+  .qrBox #qrCanvas canvas{ width:132px; height:132px; display:block }
   .qrCap{
-    padding:4px 8px; border-radius:999px;
+    padding:5px 10px; border-radius:999px;
     background:rgba(255,255,255,.08);
     border:1px solid rgba(255,255,255,.10);
     color:#E8EEF6; font-weight:600;
-    font-size:12px; letter-spacing:.02em;
+    font-size:12px; letter-spacing:.02em; white-space:nowrap;
   }
 
   .fade{ animation:fade .45s ease-out }
@@ -92,7 +94,13 @@
     .sec h3{ font-size:13px }
     .sec p{ font-size:15px; line-height:1.45 }
     .strip{ padding:10px 12px; font-size:12px }
-    .qrBox{ right:10px; top:10px }
+
+    /* На мобильном — компактный бейдж в углу */
+    .qrBox{
+      right:10px; top:10px; transform:none;
+      border-radius:12px; border:1px solid rgba(255,255,255,.10);
+      padding:10px; box-shadow:0 8px 20px rgba(0,0,0,.35);
+    }
     .qrBox #qrCanvas canvas{ width:98px; height:98px }
   }
 
@@ -130,7 +138,7 @@
       <div class="sec"><h3>Запрос:</h3><p id="ask">—</p></div>
     </div>
 
-    <!-- QR: мягкий бейдж -->
+    <!-- QR: сайд-бейдж на правой кромке -->
     <div class="qrBox" id="qrBox" style="display:none">
       <div id="qrCanvas"></div>
       <div class="qrCap" id="qrLabel">@handle</div>
@@ -310,14 +318,14 @@ function next(forcedIndex){
   if(tgUrl){ tg.href=tgUrl; document.getElementById('tgTxt').textContent=tgUrl.replace(/^https?:\/\//,''); tg.style.display='flex'; }
   else tg.style.display='none';
 
-  // QR справа, мягкий ярлык с @handle
+  // QR: сайд-бейдж на кромке, с @handle
   const qrBox=document.getElementById('qrBox');
   const qrHolder=document.getElementById('qrCanvas');
   const qrLabel=document.getElementById('qrLabel');
   if(tgUrl){
     const label = tgLabel(r.tg) || 't.me';
     qrHolder.innerHTML='';
-    new QRCode(qrHolder,{ text: tgUrl, width:128, height:128 });
+    new QRCode(qrHolder,{ text: tgUrl, width:132, height:132 });
     qrLabel.textContent = label;
     qrBox.style.display='flex';
   }else{
