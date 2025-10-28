@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Витрина визиток</title>
+<title>Витрина визиток — демо</title>
 <style>
   :root{
     --bg:#0b0e13; --txt:#fff; --muted:#C7D0DB;
@@ -27,25 +27,22 @@
       radial-gradient(900px 680px at 72% 10%, rgba(90,124,231,.35), transparent 55%),
       radial-gradient(700px 520px at 40% 40%, rgba(255,255,255,.06), rgba(255,255,255,.02));
     box-shadow:0 24px 60px rgba(0,0,0,.55);
+    animation:fade .45s ease-out;
   }
-  .card.hidden{visibility:hidden}
+  @keyframes fade{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
 
-  /* Фото — без чёрной «рамы»: без фона и без тени */
+  /* Фото — без чёрной рамки и тени */
   .photoWrap{ padding:0; background:none; box-shadow:none; border-radius:22px }
   .photo{
     width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:22px; display:block;
     background:none; box-shadow:none;
-  }
-  .photo.is-broken{
-    background:
-      radial-gradient(48px 48px at 50% 50%, rgba(255,255,255,.08) 40%, transparent 41%);
   }
 
   .name{ margin:0; line-height:1.03; font-weight:800; font-size:clamp(40px,5.8vw,84px) }
   .role{ margin:.45em 0 1.1em; color:var(--muted); font-size:clamp(16px,2.2vw,26px) }
   .contacts{ display:flex; gap:16px 28px; flex-wrap:wrap; margin:0 0 18px }
   .pill{ display:flex; align-items:center; gap:10px; color:#eaf6ff; text-decoration:none;
-        font-size:clamp(14px,1.6vw,20px) }
+         font-size:clamp(14px,1.6vw,20px) }
   .pill svg{ width:20px; height:20px; opacity:.9; flex:0 0 20px }
 
   .sec{ margin-top:18px }
@@ -57,7 +54,7 @@
           background:linear-gradient(90deg,var(--c2),var(--c3)); font-weight:800; letter-spacing:.02em;
           text-transform:uppercase; font-size:clamp(12px,1.4vw,16px) }
 
-  /* QR — «встроенный» сайд-бейдж на правой кромке */
+  /* QR — встроенный сайд-бейдж на правой кромке */
   .qrBox{
     position:absolute; right:-4px; top:50%; transform:translateY(-50%);
     z-index:5; padding:12px 12px 10px 14px;
@@ -70,7 +67,7 @@
     box-shadow:0 12px 28px rgba(0,0,0,.45);
     display:flex; flex-direction:column; align-items:center; gap:8px;
   }
-  .qrBox #qrCanvas canvas{ width:132px; height:132px; display:block }
+  .qrImg{ width:132px; height:132px; display:block; border-radius:8px }
   .qrCap{
     padding:5px 10px; border-radius:999px;
     background:rgba(255,255,255,.08);
@@ -78,9 +75,6 @@
     color:#E8EEF6; font-weight:600;
     font-size:12px; letter-spacing:.02em; white-space:nowrap;
   }
-
-  .fade{ animation:fade .45s ease-out }
-  @keyframes fade{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
 
   @media (max-width:780px){
     .card{ grid-template-columns:1fr; padding:20px 18px; gap:18px; min-height:auto }
@@ -93,325 +87,19 @@
     .sec h3{ font-size:13px }
     .sec p{ font-size:15px; line-height:1.45 }
     .strip{ padding:10px 12px; font-size:12px }
-
-    /* На мобильном — компактный бейдж в углу */
     .qrBox{
       right:10px; top:10px; transform:none;
       border-radius:12px; border:1px solid rgba(255,255,255,.10);
       padding:10px; box-shadow:0 8px 20px rgba(0,0,0,.35);
     }
-    .qrBox #qrCanvas canvas{ width:98px; height:98px }
+    .qrImg{ width:98px; height:98px }
   }
-
-  /* Видимый отладчик */
-  .debug{
-    position:fixed; left:12px; top:12px; z-index:20; max-width:680px;
-    background:#132033; color:#e8f1ff; border:1px solid #2c3e60;
-    border-radius:12px; padding:10px 12px; font-size:13px; line-height:1.4;
-    box-shadow:0 10px 24px rgba(0,0,0,.35)
-  }
-  .debug b{color:#9AF4EA}
-  .msg{position:fixed;left:12px;bottom:12px;background:#1a2231;border:1px solid #2c3650;
-       color:#cfe0ff;padding:10px 12px;border-radius:10px;font-size:14px;max-width:520px;z-index:10}
 </style>
 </head>
 <body>
 <main class="stage">
-  <section class="card fade hidden" id="card" title="Клик — пауза/продолжить. Свайп ←/→ на телефоне.">
+  <section class="card" id="card">
     <div class="photoWrap">
-      <img id="ph" class="photo" alt="">
-    </div>
-
-    <div class="right">
-      <h1 id="nm" class="name">Имя<br>Фамилия</h1>
-      <div id="rl" class="role">Должность, Компания</div>
-
-      <div class="contacts">
-        <a class="pill" id="telPill" href="#" target="_blank" rel="noopener" style="display:none">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.2 1.3.5 2.7.8 4.1.8.7 0 1.3.6 1.3 1.3V21c0 .7-.6 1.3-1.3 1.3C9.8 22.3 1.7 14.2 1.7 3.3 1.7 2.6 2.3 2 3 2h3.7c.7 0 1.3.6 1.3 1.3 0 1.4.3 2.8.8 4.1.1.4 0 .9-.3 1.2l-2 2.2z"/></svg>
-          <span id="telTxt"></span>
-        </a>
-        <a class="pill" id="mailPill" href="#" target="_blank" rel="noopener" style="display:none">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 13 1.5 6.75V18a2 2 0 0 0 2 2h17a2 2 0 0 0 2-2V6.75L12 13zm0-2.5L22.5 4H1.5L12 10.5z"/></svg>
-          <span id="mailTxt"></span>
-        </a>
-        <a class="pill" id="tgPill" href="#" target="_blank" rel="noopener" style="display:none">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.04 15.34 8.9 18.9c.41 0 .59-.18.81-.4l1.94-1.86 4.02 2.95c.74.41 1.26.2 1.46-.69l2.64-12.41c.27-1.25-.45-1.73-1.17-1.43L3.4 9.55c-1.2.47-1.18 1.14-.2 1.45l4.9 1.53 11.37-7.17c.53-.33 1.01-.15.61.18L9.04 15.34z"/></svg>
-          <span id="tgTxt"></span>
-        </a>
-      </div>
-
-      <div class="sec"><h3>О себе:</h3><p id="about">—</p></div>
-      <div class="sec"><h3>Запрос:</h3><p id="ask">—</p></div>
-    </div>
-
-    <!-- QR: сайд-бейдж на правой кромке -->
-    <div class="qrBox" id="qrBox" style="display:none">
-      <div id="qrCanvas"></div>
-      <div class="qrCap" id="qrLabel">@handle</div>
-    </div>
-
-    <div class="strip">ДЛЯ РАЗМЕЩЕНИЯ ВАШЕЙ ВИЗИТКИ НА ЭТОМ ЭКРАНЕ ПОДОЙДИТЕ НА СТЕНД ИНССМАРТ</div>
-  </section>
-</main>
-
-<div id="debug" class="debug" style="display:none"></div>
-<div id="msg" class="msg" style="display:none"></div>
-
-<!-- QRCode JS -->
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-/* === Настройки === */
-const DEF_SHEET = 'https://opensheet.elk.sh/1TAPC4-82xwqNfPZ3NRCa06Y1FvYVx2YaTn6DArUgU2I/Sheet1';
-const urlParams = new URLSearchParams(location.search);
-const SHEET_JSON_URL = urlParams.get('sheet') || DEF_SHEET;
-const RELOAD_MS = 60000;
-const ENFORCE_APPROVED = true; // строго фильтровать по approved; если пусто — ослабим
-
-/* === UI вспомогалки === */
-const $ = sel => document.querySelector(sel);
-const showMsg = t => { const m = $('#msg'); m.textContent = t; m.style.display = 'block'; };
-const showDebug = (obj) => { const d = $('#debug'); d.style.display = 'block'; d.innerHTML = formatDebug(obj); };
-const formatDebug = (o) => {
-  try { return '<b>Debug:</b> ' + JSON.stringify(o, null, 2).replace(/\\n/g,'<br>').replace(/  /g,'&nbsp;&nbsp;'); }
-  catch(e){ return String(o); }
-};
-const isMobile=()=>window.matchMedia('(max-width:780px)').matches;
-
-/* === Поиск ключей === */
-const findKey=(r,parts)=>{const k=Object.keys(r),l=k.map(x=>x.toLowerCase());for(let i=0;i<k.length;i++){if(parts.every(p=>l[i].includes(p)))return k[i]}return null}
-
-/* Фото: thumbnail -> uc?view */
-function buildPhotoUrls(url=''){
-  if(!url) return [];
-  const m1=url.match(/[\?&]id=([^&]+)/i);
-  const m2=url.match(/\/d\/([^/]+)/i);
-  const id=(m1&&m1[1])||(m2&&m2[1])||'';
-  if(!id) return [url];
-  return [
-    `https://drive.google.com/thumbnail?id=${id}&sz=w1600`,
-    `https://drive.google.com/uc?export=view&id=${id}`,
-  ];
-}
-
-/* TG нормализация */
-function fmtTG(v){
-  if(!v) return '';
-  let s=(''+v).trim();
-  if(/^https?:\/\//i.test(s)) return s;
-  if(s.startsWith('@')) return 'https://t.me/'+s.slice(1);
-  return 'https://'+s.replace(/^t\.me\//i,'t.me/');
-}
-function tgLabel(v){
-  if(!v) return '';
-  let s=(''+v).trim();
-  if(s.startsWith('@')) return s;
-  const m=s.match(/t\.me\/([^/?#]+)/i); if(m) return '@'+m[1];
-  const u=fmtTG(s); const mm=u.match(/t\.me\/([^/?#]+)/i); return mm?'@'+mm[1]:'';
-}
-
-/* Авторедактор */
-function smartTrim(s,max){
-  if(!s) return '';
-  let t = (''+s)
-    .replace(/<[^>]+>/g,' ')
-    .replace(/\s+/g,' ')
-    .replace(/ *[-–—] */g,' — ')
-    .replace(/"([^"]*)"/g,'«$1»')
-    .trim();
-
-  const letters=t.replace(/[^A-Za-zА-Яа-яЁё]/g,'');
-  const caps=letters.replace(/[a-zа-яё]/g,'').length;
-  if(letters && caps/letters.length>0.7){
-    t = t.toLowerCase().replace(/^([a-zа-яё])/,(m)=>m.toUpperCase());
-  }
-
-  t = t.replace(/ ?([,.!?;:]) ?/g,'$1 ')
-       .replace(/\s—\s/g,' — ')
-       .replace(/\s+/g,' ')
-       .trim();
-
-  if(!max) return t;
-
-  const limit = max;
-  if(t.length<=limit) return t;
-  const parts = t.split(/(?<=[\.\!\?])\s+/);
-  let out='';
-  for(const p of parts){
-    if((out+p).length>limit) break;
-    out += (out?' ':'')+p;
-  }
-  if(!out) out = t.slice(0,limit);
-  return out.trim().replace(/[–—-.,;:]*$/,'')+'…';
-}
-
-/* Парс строки */
-const pick=r=>{
-  const aboutK=findKey(r,['обо','мне'])||findKey(r,['о','себе']);
-  const askK  =findKey(r,['профессион','запрос'])||findKey(r,['цель'])||findKey(r,['запрос']);
-  const photoK=findKey(r,['photo_direct'])||findKey(r,['прикрепите','фото'])||findKey(r,['фото']);
-  const role=[
-    findKey(r,['должн'])?r[findKey(r,['должн'])]:'',
-    findKey(r,['место','работ'])?r[findKey(r,['место','работ'])]:(findKey(r,['компан'])?r[findKey(r,['компан'])]:'')
-  ].filter(Boolean).join(', ').replace(/(^, |, $)/g,'');
-  const apprK=findKey(r,['approved'])||'approved';
-  return{
-    name:findKey(r,['имя'])?r[findKey(r,['имя'])]:'',
-    surname:findKey(r,['фамил'])?r[findKey(r,['фамил'])]:'',
-    role,
-    about:aboutK?r[aboutK]:'',
-    ask:  askK?r[askK]:'',
-    mail: findKey(r,['адрес','электрон'])?r[findKey(r,['адрес','электрон'])]:(findKey(r,['email'])?r[findKey(r,['email'])]:''),
-    phone:findKey(r,['номер','тел'])?(r[findKey(r,['номер','тел'])]+'').replace(/\s+/g,''):'',
-    tg:   findKey(r,['ник','телеграм'])?r[findKey(r,['ник','телеграм'])]:(findKey(r,['telegram'])?r[findKey(r,['telegram'])]:''),
-    photos: buildPhotoUrls(photoK?r[photoK]:''),
-    approved:((r[apprK]||'')+'').toLowerCase().trim()==='true'
-  };
-};
-function isValidRow(r){
-  const tr=v=>(v||'').toString().trim();
-  const hasName=!!(tr(r.name)||tr(r.surname));
-  const hasAny=['role','about','ask','phone','mail','tg','photos'].some(k=>tr(r[k]));
-  return hasName && hasAny;
-}
-
-/* Слайдер */
-let data=[], idx=-1, timer=null, paused=false, touchX=null, currentHoldMs=12000;
-
-function estimateHoldMs(row){
-  const base=isMobile()?16000:12000, perChar=isMobile()?40:30;
-  const text=(row.about||'')+' '+(row.ask||'');
-  return Math.max(10000, Math.min(45000, base + text.length*perChar));
-}
-function scheduleNext(){ clearInterval(timer); if(paused) return; timer=setInterval(()=>{ if(!paused) next(); }, currentHoldMs); }
-
-async function load(){
-  const debug = {sheet:SHEET_JSON_URL, ok:false, http:null, total:0, afterApproved:0, afterValid:0, error:null};
-  try{
-    const res=await fetch(SHEET_JSON_URL,{cache:'no-store'});
-    debug.http = res.status+' '+res.statusText;
-    if(!res.ok) throw new Error('HTTP '+res.status+' '+res.statusText);
-    const json=await res.json();
-    if(!Array.isArray(json)) throw new Error('Ответ не массив');
-    debug.total = json.length;
-
-    const picked = json.map(pick);
-    let rows = picked;
-    if(ENFORCE_APPROVED){
-      rows = picked.filter(r=>r.approved);
-      debug.afterApproved = rows.length;
-      if(rows.length===0){ // ослабляем правило
-        rows = picked;
-      }
-    }
-    const valid = rows.filter(isValidRow);
-    debug.afterValid = valid.length;
-    if(valid.length===0) throw new Error('Нет валидных строк (поля пустые?)');
-
-    data = valid.sort(()=>Math.random()-0.5);
-    idx=-1; debug.ok=true; next();
-    showDebug(debug);
-  }catch(e){
-    debug.error = String(e && e.message || e);
-    showDebug(debug);
-    showMsg('Источник недоступен или пуст. Показана демо-карточка.');
-    useDemo();
-  }
-}
-
-function useDemo(){
-  data = [{
-    name:'Гость', surname:'Форума',
-    role:'Страховой агент',
-    about:'Помогаю людям понимать сложное и выбирать главное.',
-    ask:'Ищу партнёров по регионам и платформы для совместных акций.',
-    mail:'guest@example.com',
-    phone:'+79991234567',
-    tg:'@insmart_demo',
-    photos:['https://images.unsplash.com/photo-1544723795-3fb6469f5b39?q=80&w=1200&auto=format&fit=crop'],
-    approved:true
-  }];
-  idx=-1; next();
-}
-
-function next(forcedIndex){
-  if(!data.length) return;
-  if(typeof forcedIndex==='number') idx=(forcedIndex+data.length)%data.length;
-  else idx=(idx+1)%data.length;
-
-  const r=data[idx];
-  const card=$('#card');
-  card.classList.remove('hidden'); card.classList.remove('fade'); void card.offsetWidth; card.classList.add('fade');
-
-  const full=[r.name,r.surname].filter(Boolean);
-  $('#nm').innerHTML = full.length>=2 ? `${full[0]}<br>${full.slice(1).join(' ')}` : (full[0]||'Гость форума');
-
-  const roleClean = smartTrim(r.role, isMobile()?70:110);
-  $('#rl').textContent = roleClean || '';
-
-  const aboutClean = smartTrim(r.about, isMobile()?260:420);
-  const askClean   = smartTrim(r.ask,   isMobile()?220:360);
-  $('#about').textContent = aboutClean || '—';
-  $('#ask').textContent   = askClean   || '—';
-
-  const img=$('#ph');
-  let photoIndex=0; img.classList.remove('is-broken');
-  img.onerror=()=>{ photoIndex++; if(photoIndex<r.photos.length){ img.src=r.photos[photoIndex]; } else { img.removeAttribute('src'); img.classList.add('is-broken'); } };
-  img.onload =()=>{ img.classList.remove('is-broken'); };
-  img.src = r.photos && r.photos[0] || '';
-
-  const tel=$('#telPill');
-  const mail=$('#mailPill');
-  const tg=$('#tgPill');
-
-  if(r.phone){ tel.href='tel:'+r.phone.replace(/^\+?/,'+'); $('#telTxt').textContent=r.phone.replace(/^\+?/,'+'); tel.style.display='flex'; }
-  else tel.style.display='none';
-
-  if(r.mail){ mail.href='mailto:'+r.mail; $('#mailTxt').textContent=r.mail; mail.style.display='flex'; }
-  else mail.style.display='none';
-
-  const tgUrl=fmtTG(r.tg);
-  if(tgUrl){ tg.href=tgUrl; $('#tgTxt').textContent=tgUrl.replace(/^https?:\/\//,''); tg.style.display='flex'; }
-  else tg.style.display='none';
-
-  // QR
-  const qrBox=$('#qrBox');
-  const qrHolder=$('#qrCanvas');
-  const qrLabel=$('#qrLabel');
-  if(tgUrl){
-    const label = tgLabel(r.tg) || 't.me';
-    qrHolder.innerHTML='';
-    // QRCode скрипт мог ещё не подгрузиться — ждём, если надо
-    const makeQR=()=>{ if(window.QRCode){ new QRCode(qrHolder,{ text: tgUrl, width:132, height:132 }); }
-                       else setTimeout(makeQR, 50); };
-    makeQR();
-    qrLabel.textContent = label;
-    qrBox.style.display='flex';
-  }else{
-    qrBox.style.display='none';
-    qrHolder.innerHTML='';
-  }
-
-  currentHoldMs=estimateHoldMs(r);
-  scheduleNext();
-}
-
-/* Управление */
-document.addEventListener('visibilitychange',()=>{ if(document.hidden){ paused=true; clearInterval(timer); } else { paused=false; scheduleNext(); }});
-const cardEl=document.getElementById('card');
-cardEl.addEventListener('click',()=>{ paused=!paused; if(paused) clearInterval(timer); else scheduleNext(); });
-cardEl.addEventListener('touchstart',e=>{ touchX=e.touches[0].clientX; },{passive:true});
-cardEl.addEventListener('touchend',e=>{
-  if(touchX==null) return;
-  const dx=e.changedTouches[0].clientX - touchX; touchX=null;
-  if(Math.abs(dx)<40) return;
-  clearInterval(timer);
-  if(dx<0) next();
-  else     next((idx-1+data.length)%data.length);
-});
-
-/* Загрузка */
-load();
-setInterval(load, RELOAD_MS);
-</script>
-</body>
-</html>
+      <!-- любое своё фото можно подставить сюда -->
+      <img class="photo" alt=""
+           src="https://images.unsplash.com/photo-1544723795-3fb6469f5b39?q=80&w=1200&a
