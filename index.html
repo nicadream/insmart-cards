@@ -30,12 +30,11 @@
   }
   .card.hidden{visibility:hidden}
 
-  /* Фото — без «рамки»: без фона и без тени */
+  /* Фото — без чёрной «рамы»: без фона и без тени */
   .photoWrap{ padding:0; background:none; box-shadow:none; border-radius:22px }
   .photo{
     width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:22px; display:block;
-    background:none;              /* убран тёмный фон */
-    box-shadow:none;              /* убрана тень-рамка */
+    background:none; box-shadow:none;
   }
   .photo.is-broken{
     background:
@@ -104,6 +103,14 @@
     .qrBox #qrCanvas canvas{ width:98px; height:98px }
   }
 
+  /* Видимый отладчик */
+  .debug{
+    position:fixed; left:12px; top:12px; z-index:20; max-width:680px;
+    background:#132033; color:#e8f1ff; border:1px solid #2c3e60;
+    border-radius:12px; padding:10px 12px; font-size:13px; line-height:1.4;
+    box-shadow:0 10px 24px rgba(0,0,0,.35)
+  }
+  .debug b{color:#9AF4EA}
   .msg{position:fixed;left:12px;bottom:12px;background:#1a2231;border:1px solid #2c3650;
        color:#cfe0ff;padding:10px 12px;border-radius:10px;font-size:14px;max-width:520px;z-index:10}
 </style>
@@ -148,21 +155,33 @@
   </section>
 </main>
 
+<div id="debug" class="debug" style="display:none"></div>
 <div id="msg" class="msg" style="display:none"></div>
 
 <!-- QRCode JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 <script>
 /* === Настройки === */
-const SHEET_JSON_URL = 'https://opensheet.elk.sh/1TAPC4-82xwqNfPZ3NRCa06Y1FvYVx2YaTn6DArUgU2I/Sheet1';
+const DEF_SHEET = 'https://opensheet.elk.sh/1TAPC4-82xwqNfPZ3NRCa06Y1FvYVx2YaTn6DArUgU2I/Sheet1';
+const urlParams = new URLSearchParams(location.search);
+const SHEET_JSON_URL = urlParams.get('sheet') || DEF_SHEET;
 const RELOAD_MS = 60000;
-const showMsg=t=>{ const m=document.getElementById('msg'); m.textContent=t; m.style.display='block'; };
+const ENFORCE_APPROVED = true; // строго фильтровать по approved; если пусто — ослабим
 
-/* === Утилиты === */
-const findKey=(r,parts)=>{const k=Object.keys(r),l=k.map(x=>x.toLowerCase());for(let i=0;i<k.length;i++){if(parts.every(p=>l[i].includes(p)))return k[i]}return null}
+/* === UI вспомогалки === */
+const $ = sel => document.querySelector(sel);
+const showMsg = t => { const m = $('#msg'); m.textContent = t; m.style.display = 'block'; };
+const showDebug = (obj) => { const d = $('#debug'); d.style.display = 'block'; d.innerHTML = formatDebug(obj); };
+const formatDebug = (o) => {
+  try { return '<b>Debug:</b> ' + JSON.stringify(o, null, 2).replace(/\\n/g,'<br>').replace(/  /g,'&nbsp;&nbsp;'); }
+  catch(e){ return String(o); }
+};
 const isMobile=()=>window.matchMedia('(max-width:780px)').matches;
 
-/* Фото: сначала thumbnail, затем uc?view */
+/* === Поиск ключей === */
+const findKey=(r,parts)=>{const k=Object.keys(r),l=k.map(x=>x.toLowerCase());for(let i=0;i<k.length;i++){if(parts.every(p=>l[i].includes(p)))return k[i]}return null}
+
+/* Фото: thumbnail -> uc?view */
 function buildPhotoUrls(url=''){
   if(!url) return [];
   const m1=url.match(/[\?&]id=([^&]+)/i);
@@ -175,7 +194,7 @@ function buildPhotoUrls(url=''){
   ];
 }
 
-/* Нормализация Telegram URL и подписи */
+/* TG нормализация */
 function fmtTG(v){
   if(!v) return '';
   let s=(''+v).trim();
@@ -191,7 +210,7 @@ function tgLabel(v){
   const u=fmtTG(s); const mm=u.match(/t\.me\/([^/?#]+)/i); return mm?'@'+mm[1]:'';
 }
 
-/* ——— Авторедактор ——— */
+/* Авторедактор */
 function smartTrim(s,max){
   if(!s) return '';
   let t = (''+s)
@@ -230,7 +249,7 @@ function smartTrim(s,max){
 const pick=r=>{
   const aboutK=findKey(r,['обо','мне'])||findKey(r,['о','себе']);
   const askK  =findKey(r,['профессион','запрос'])||findKey(r,['цель'])||findKey(r,['запрос']);
-  const photoK=findKey(r,['photo_direct'])||findKey(r,['прикрепите','фото']);
+  const photoK=findKey(r,['photo_direct'])||findKey(r,['прикрепите','фото'])||findKey(r,['фото']);
   const role=[
     findKey(r,['должн'])?r[findKey(r,['должн'])]:'',
     findKey(r,['место','работ'])?r[findKey(r,['место','работ'])]:(findKey(r,['компан'])?r[findKey(r,['компан'])]:'')
@@ -242,7 +261,7 @@ const pick=r=>{
     role,
     about:aboutK?r[aboutK]:'',
     ask:  askK?r[askK]:'',
-    mail: findKey(r,['адрес','электрон'])?r[findKey(r,['адрес','электрон'])]:'',
+    mail: findKey(r,['адрес','электрон'])?r[findKey(r,['адрес','электрон'])]:(findKey(r,['email'])?r[findKey(r,['email'])]:''),
     phone:findKey(r,['номер','тел'])?(r[findKey(r,['номер','тел'])]+'').replace(/\s+/g,''):'',
     tg:   findKey(r,['ник','телеграм'])?r[findKey(r,['ник','телеграм'])]:(findKey(r,['telegram'])?r[findKey(r,['telegram'])]:''),
     photos: buildPhotoUrls(photoK?r[photoK]:''),
@@ -253,10 +272,10 @@ function isValidRow(r){
   const tr=v=>(v||'').toString().trim();
   const hasName=!!(tr(r.name)||tr(r.surname));
   const hasAny=['role','about','ask','phone','mail','tg','photos'].some(k=>tr(r[k]));
-  return r.approved && hasName && hasAny;
+  return hasName && hasAny;
 }
 
-/* ——— Слайдер ——— */
+/* Слайдер */
 let data=[], idx=-1, timer=null, paused=false, touchX=null, currentHoldMs=12000;
 
 function estimateHoldMs(row){
@@ -267,15 +286,52 @@ function estimateHoldMs(row){
 function scheduleNext(){ clearInterval(timer); if(paused) return; timer=setInterval(()=>{ if(!paused) next(); }, currentHoldMs); }
 
 async function load(){
+  const debug = {sheet:SHEET_JSON_URL, ok:false, http:null, total:0, afterApproved:0, afterValid:0, error:null};
   try{
     const res=await fetch(SHEET_JSON_URL,{cache:'no-store'});
+    debug.http = res.status+' '+res.statusText;
+    if(!res.ok) throw new Error('HTTP '+res.status+' '+res.statusText);
     const json=await res.json();
-    if(!Array.isArray(json)){ showMsg('Не могу прочитать таблицу'); return; }
-    data=json.map(pick).filter(isValidRow);
-    if(!data.length){ showMsg('Нет записей с approved = TRUE'); return; }
-    data.sort(()=>Math.random()-0.5);
-    idx=-1; next();
-  }catch(e){ console.error(e); showMsg('Ошибка загрузки. Проверь доступ к таблице.'); }
+    if(!Array.isArray(json)) throw new Error('Ответ не массив');
+    debug.total = json.length;
+
+    const picked = json.map(pick);
+    let rows = picked;
+    if(ENFORCE_APPROVED){
+      rows = picked.filter(r=>r.approved);
+      debug.afterApproved = rows.length;
+      if(rows.length===0){ // ослабляем правило
+        rows = picked;
+      }
+    }
+    const valid = rows.filter(isValidRow);
+    debug.afterValid = valid.length;
+    if(valid.length===0) throw new Error('Нет валидных строк (поля пустые?)');
+
+    data = valid.sort(()=>Math.random()-0.5);
+    idx=-1; debug.ok=true; next();
+    showDebug(debug);
+  }catch(e){
+    debug.error = String(e && e.message || e);
+    showDebug(debug);
+    showMsg('Источник недоступен или пуст. Показана демо-карточка.');
+    useDemo();
+  }
+}
+
+function useDemo(){
+  data = [{
+    name:'Гость', surname:'Форума',
+    role:'Страховой агент',
+    about:'Помогаю людям понимать сложное и выбирать главное.',
+    ask:'Ищу партнёров по регионам и платформы для совместных акций.',
+    mail:'guest@example.com',
+    phone:'+79991234567',
+    tg:'@insmart_demo',
+    photos:['https://images.unsplash.com/photo-1544723795-3fb6469f5b39?q=80&w=1200&auto=format&fit=crop'],
+    approved:true
+  }];
+  idx=-1; next();
 }
 
 function next(forcedIndex){
@@ -284,48 +340,51 @@ function next(forcedIndex){
   else idx=(idx+1)%data.length;
 
   const r=data[idx];
-  const card=document.getElementById('card');
+  const card=$('#card');
   card.classList.remove('hidden'); card.classList.remove('fade'); void card.offsetWidth; card.classList.add('fade');
 
   const full=[r.name,r.surname].filter(Boolean);
-  document.getElementById('nm').innerHTML = full.length>=2 ? `${full[0]}<br>${full.slice(1).join(' ')}` : (full[0]||'Гость форума');
+  $('#nm').innerHTML = full.length>=2 ? `${full[0]}<br>${full.slice(1).join(' ')}` : (full[0]||'Гость форума');
 
   const roleClean = smartTrim(r.role, isMobile()?70:110);
-  document.getElementById('rl').textContent = roleClean || '';
+  $('#rl').textContent = roleClean || '';
 
   const aboutClean = smartTrim(r.about, isMobile()?260:420);
   const askClean   = smartTrim(r.ask,   isMobile()?220:360);
-  document.getElementById('about').textContent = aboutClean || '—';
-  document.getElementById('ask').textContent   = askClean   || '—';
+  $('#about').textContent = aboutClean || '—';
+  $('#ask').textContent   = askClean   || '—';
 
-  const img=document.getElementById('ph');
+  const img=$('#ph');
   let photoIndex=0; img.classList.remove('is-broken');
   img.onerror=()=>{ photoIndex++; if(photoIndex<r.photos.length){ img.src=r.photos[photoIndex]; } else { img.removeAttribute('src'); img.classList.add('is-broken'); } };
   img.onload =()=>{ img.classList.remove('is-broken'); };
-  img.src = r.photos[0] || '';
+  img.src = r.photos && r.photos[0] || '';
 
-  const tel=document.getElementById('telPill');
-  const mail=document.getElementById('mailPill');
-  const tg=document.getElementById('tgPill');
+  const tel=$('#telPill');
+  const mail=$('#mailPill');
+  const tg=$('#tgPill');
 
-  if(r.phone){ tel.href='tel:'+r.phone; document.getElementById('telTxt').textContent='+'+r.phone.replace(/^\+?/,''); tel.style.display='flex'; }
+  if(r.phone){ tel.href='tel:'+r.phone.replace(/^\+?/,'+'); $('#telTxt').textContent=r.phone.replace(/^\+?/,'+'); tel.style.display='flex'; }
   else tel.style.display='none';
 
-  if(r.mail){ mail.href='mailto:'+r.mail; document.getElementById('mailTxt').textContent=r.mail; mail.style.display='flex'; }
+  if(r.mail){ mail.href='mailto:'+r.mail; $('#mailTxt').textContent=r.mail; mail.style.display='flex'; }
   else mail.style.display='none';
 
   const tgUrl=fmtTG(r.tg);
-  if(tgUrl){ tg.href=tgUrl; document.getElementById('tgTxt').textContent=tgUrl.replace(/^https?:\/\//,''); tg.style.display='flex'; }
+  if(tgUrl){ tg.href=tgUrl; $('#tgTxt').textContent=tgUrl.replace(/^https?:\/\//,''); tg.style.display='flex'; }
   else tg.style.display='none';
 
-  // QR: сайд-бейдж на кромке, с @handle
-  const qrBox=document.getElementById('qrBox');
-  const qrHolder=document.getElementById('qrCanvas');
-  const qrLabel=document.getElementById('qrLabel');
+  // QR
+  const qrBox=$('#qrBox');
+  const qrHolder=$('#qrCanvas');
+  const qrLabel=$('#qrLabel');
   if(tgUrl){
     const label = tgLabel(r.tg) || 't.me';
     qrHolder.innerHTML='';
-    new QRCode(qrHolder,{ text: tgUrl, width:132, height:132 });
+    // QRCode скрипт мог ещё не подгрузиться — ждём, если надо
+    const makeQR=()=>{ if(window.QRCode){ new QRCode(qrHolder,{ text: tgUrl, width:132, height:132 }); }
+                       else setTimeout(makeQR, 50); };
+    makeQR();
     qrLabel.textContent = label;
     qrBox.style.display='flex';
   }else{
@@ -337,7 +396,7 @@ function next(forcedIndex){
   scheduleNext();
 }
 
-/* Управление воспроизведением */
+/* Управление */
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){ paused=true; clearInterval(timer); } else { paused=false; scheduleNext(); }});
 const cardEl=document.getElementById('card');
 cardEl.addEventListener('click',()=>{ paused=!paused; if(paused) clearInterval(timer); else scheduleNext(); });
@@ -351,6 +410,7 @@ cardEl.addEventListener('touchend',e=>{
   else     next((idx-1+data.length)%data.length);
 });
 
+/* Загрузка */
 load();
 setInterval(load, RELOAD_MS);
 </script>
