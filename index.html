@@ -30,7 +30,7 @@
   }
   .card.hidden{visibility:hidden}
 
-  /* Фото — без «рамы», только мягкая тень */
+  /* Фото — без рамы, мягкая тень */
   .photoWrap{ padding:0; background:none; box-shadow:none; border-radius:22px }
   .photo{
     width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:22px; display:block;
@@ -59,16 +59,24 @@
           background:linear-gradient(90deg,var(--c2),var(--c3)); font-weight:800; letter-spacing:.02em;
           text-transform:uppercase; font-size:clamp(12px,1.4vw,16px) }
 
-  /* QR — переехал вправо */
+  /* QR — мягкий бейдж справа */
   .qrBox{
     position:absolute; right:18px; top:18px; z-index:5;
-    padding:10px; border-radius:14px;
-    background:rgba(10,14,22,.85);
-    box-shadow:0 6px 18px rgba(0,0,0,.35), inset 0 0 0 1px #273040;
+    padding:10px 12px; border-radius:14px;
+    background:rgba(18,22,30,.68);
+    border:1px solid rgba(255,255,255,.08);
+    backdrop-filter: blur(6px);
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
     display:flex; flex-direction:column; align-items:center; gap:6px;
   }
   .qrBox #qrCanvas canvas{ width:120px; height:120px; display:block }
-  .qrCap{ font-size:12px; color:#9AF4EA; letter-spacing:.04em; text-transform:uppercase; }
+  .qrCap{
+    padding:4px 8px; border-radius:999px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.10);
+    color:#E8EEF6; font-weight:600;
+    font-size:12px; letter-spacing:.02em;
+  }
 
   .fade{ animation:fade .45s ease-out }
   @keyframes fade{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
@@ -122,10 +130,10 @@
       <div class="sec"><h3>Запрос:</h3><p id="ask">—</p></div>
     </div>
 
-    <!-- QR теперь здесь, справа -->
+    <!-- QR: мягкий бейдж -->
     <div class="qrBox" id="qrBox" style="display:none">
       <div id="qrCanvas"></div>
-      <div class="qrCap">Telegram</div>
+      <div class="qrCap" id="qrLabel">@handle</div>
     </div>
 
     <div class="strip">ДЛЯ РАЗМЕЩЕНИЯ ВАШЕЙ ВИЗИТКИ НА ЭТОМ ЭКРАНЕ ПОДОЙДИТЕ НА СТЕНД ИНССМАРТ</div>
@@ -134,6 +142,7 @@
 
 <div id="msg" class="msg" style="display:none"></div>
 
+<!-- QRCode JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 /* === Настройки === */
@@ -158,24 +167,38 @@ function buildPhotoUrls(url=''){
   ];
 }
 
-/* ——— Авторедактор текста ——— */
+/* Нормализация Telegram URL и подписи */
+function fmtTG(v){
+  if(!v) return '';
+  let s=(''+v).trim();
+  if(/^https?:\/\//i.test(s)) return s;
+  if(s.startsWith('@')) return 'https://t.me/'+s.slice(1);
+  return 'https://'+s.replace(/^t\.me\//i,'t.me/');
+}
+function tgLabel(v){
+  if(!v) return '';
+  let s=(''+v).trim();
+  if(s.startsWith('@')) return s;
+  const m=s.match(/t\.me\/([^/?#]+)/i); if(m) return '@'+m[1];
+  const u=fmtTG(s); const mm=u.match(/t\.me\/([^/?#]+)/i); return mm?'@'+mm[1]:'';
+}
+
+/* ——— Авторедактор ——— */
 function smartTrim(s,max){
   if(!s) return '';
   let t = (''+s)
-    .replace(/<[^>]+>/g,' ')               // убрать html
-    .replace(/\s+/g,' ')                   // лишние пробелы
-    .replace(/ *[-–—] */g,' — ')           // тире
-    .replace(/"([^"]*)"/g,'«$1»')          // кавычки
+    .replace(/<[^>]+>/g,' ')
+    .replace(/\s+/g,' ')
+    .replace(/ *[-–—] */g,' — ')
+    .replace(/"([^"]*)"/g,'«$1»')
     .trim();
 
-  // если 70%+ символов — капс, сделать предложение с заглавной и остальное строчными
   const letters=t.replace(/[^A-Za-zА-Яа-яЁё]/g,'');
   const caps=letters.replace(/[a-zа-яё]/g,'').length;
   if(letters && caps/letters.length>0.7){
     t = t.toLowerCase().replace(/^([a-zа-яё])/,(m)=>m.toUpperCase());
   }
 
-  // легкая «пунктуация»
   t = t.replace(/ ?([,.!?;:]) ?/g,'$1 ')
        .replace(/\s—\s/g,' — ')
        .replace(/\s+/g,' ')
@@ -183,7 +206,6 @@ function smartTrim(s,max){
 
   if(!max) return t;
 
-  // режем по предложениям, не обрывая слово
   const limit = max;
   if(t.length<=limit) return t;
   const parts = t.split(/(?<=[\.\!\?])\s+/);
@@ -225,7 +247,6 @@ function isValidRow(r){
   const hasAny=['role','about','ask','phone','mail','tg','photos'].some(k=>tr(r[k]));
   return r.approved && hasName && hasAny;
 }
-const fmtTG=v=>!v?'':(/^https?:\/\//i.test(v)?v:(v.startsWith('@')?'https://t.me/'+v.slice(1):'https://'+v.replace(/^t\.me\//i,'t.me/')));
 
 /* ——— Слайдер ——— */
 let data=[], idx=-1, timer=null, paused=false, touchX=null, currentHoldMs=12000;
@@ -261,24 +282,20 @@ function next(forcedIndex){
   const full=[r.name,r.surname].filter(Boolean);
   document.getElementById('nm').innerHTML = full.length>=2 ? `${full[0]}<br>${full.slice(1).join(' ')}` : (full[0]||'Гость форума');
 
-  // роль слегка почистим и укоротим
   const roleClean = smartTrim(r.role, isMobile()?70:110);
   document.getElementById('rl').textContent = roleClean || '';
 
-  // авторедактор + лимиты
   const aboutClean = smartTrim(r.about, isMobile()?260:420);
   const askClean   = smartTrim(r.ask,   isMobile()?220:360);
   document.getElementById('about').textContent = aboutClean || '—';
   document.getElementById('ask').textContent   = askClean   || '—';
 
-  // Фото с подстановкой запасного URL
   const img=document.getElementById('ph');
   let photoIndex=0; img.classList.remove('is-broken');
   img.onerror=()=>{ photoIndex++; if(photoIndex<r.photos.length){ img.src=r.photos[photoIndex]; } else { img.removeAttribute('src'); img.classList.add('is-broken'); } };
   img.onload =()=>{ img.classList.remove('is-broken'); };
   img.src = r.photos[0] || '';
 
-  // Контакты
   const tel=document.getElementById('telPill');
   const mail=document.getElementById('mailPill');
   const tg=document.getElementById('tgPill');
@@ -293,12 +310,15 @@ function next(forcedIndex){
   if(tgUrl){ tg.href=tgUrl; document.getElementById('tgTxt').textContent=tgUrl.replace(/^https?:\/\//,''); tg.style.display='flex'; }
   else tg.style.display='none';
 
-  // QR справа
+  // QR справа, мягкий ярлык с @handle
   const qrBox=document.getElementById('qrBox');
   const qrHolder=document.getElementById('qrCanvas');
+  const qrLabel=document.getElementById('qrLabel');
   if(tgUrl){
+    const label = tgLabel(r.tg) || 't.me';
     qrHolder.innerHTML='';
     new QRCode(qrHolder,{ text: tgUrl, width:128, height:128 });
+    qrLabel.textContent = label;
     qrBox.style.display='flex';
   }else{
     qrBox.style.display='none';
