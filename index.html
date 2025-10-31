@@ -3,145 +3,43 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Витрина визиток — демо</title>
+<title>Витрина визиток — референс</title>
 <style>
   :root{
-    --bg:#0b0e13; --txt:#fff; --muted:#C7D0DB;
-    --c1:#00E0C7; --c2:#5A7CE7; --c3:#E33D8C;
+    --bg:#0b0e13; --txt:#fff; --muted:#cfd8e3;
+    --grad1:#5A7CE7; --grad2:#7B3DF0;
+    --label:#9AF4EA;
   }
   *{box-sizing:border-box}
-  html,body{
-    height:100%; margin:0; color:var(--txt);
-    font-family: Inter, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background:
-      radial-gradient(1200px 600px at 68% 8%, rgba(90,124,231,.35), transparent 60%),
-      radial-gradient(900px 520px at 16% 90%, rgba(227,61,140,.20), transparent 60%),
-      #0b0e13;
-  }
-  .stage{min-height:100vh; display:grid; place-items:center; padding:28px}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--txt);
+    font-family: Inter, -apple-system, Segoe UI, Roboto, Arial, sans-serif}
+
+  .stage{min-height:100vh;display:grid;place-items:center;padding:28px}
   .card{
-    width:min(1280px, 96vw); min-height:620px;
-    display:grid; grid-template-columns: 410px 1fr; gap:40px; align-items:start;
-    padding:36px 40px; border-radius:28px; overflow:hidden; position:relative;
+    width:min(1280px,96vw); min-height:640px; position:relative; overflow:hidden;
+    border-radius:28px; padding:40px; display:grid; gap:40px;
+    grid-template-columns: 400px 1fr; align-items:start;
     background:
-      radial-gradient(900px 680px at 72% 10%, rgba(90,124,231,.35), transparent 55%),
-      radial-gradient(700px 520px at 40% 40%, rgba(255,255,255,.06), rgba(255,255,255,.02));
-    box-shadow:0 24px 60px rgba(0,0,0,.55);
-    animation:fade .45s ease-out;
+      radial-gradient(1100px 720px at 72% 8%, rgba(122,61,240,.45), transparent 58%),
+      radial-gradient(900px 640px at 40% 32%, rgba(90,124,231,.38), transparent 60%),
+      linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+    box-shadow: 0 30px 70px rgba(0,0,0,.55);
+    animation: fly .45s ease-out;
   }
-  @keyframes fade{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+  @keyframes fly{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
 
-  /* Фото — без чёрной рамки и тени */
-  .photoWrap{ padding:0; background:none; box-shadow:none; border-radius:22px }
-  .photo{
-    width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:22px; display:block;
-    background:none; box-shadow:none;
+  /* Левый портрет в светлом контейнере */
+  .photoWrap{
+    background:linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+    padding:16px; border-radius:24px; backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.18);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 26px rgba(0,0,0,.35);
+    align-self:start;
   }
+  .photo{display:block; width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:18px}
 
-  .name{ margin:0; line-height:1.03; font-weight:800; font-size:clamp(40px,5.8vw,84px) }
-  .role{ margin:.45em 0 1.1em; color:var(--muted); font-size:clamp(16px,2.2vw,26px) }
-  .contacts{ display:flex; gap:16px 28px; flex-wrap:wrap; margin:0 0 18px }
-  .pill{ display:flex; align-items:center; gap:10px; color:#eaf6ff; text-decoration:none;
-         font-size:clamp(14px,1.6vw,20px) }
-  .pill svg{ width:20px; height:20px; opacity:.9; flex:0 0 20px }
-
-  .sec{ margin-top:18px }
-  .sec h3{ margin:.2em 0 .4em; color:#9AF4EA; text-transform:uppercase; letter-spacing:.06em;
-           font-size:clamp(13px,1.3vw,16px) }
-  .sec p{ margin:0; color:#E8EEF6; font-size:clamp(15px,1.7vw,20px); line-height:1.5; white-space:pre-wrap }
-
-  .strip{ position:absolute; left:0; right:0; bottom:0; padding:14px 24px; text-align:center;
-          background:linear-gradient(90deg,var(--c2),var(--c3)); font-weight:800; letter-spacing:.02em;
-          text-transform:uppercase; font-size:clamp(12px,1.4vw,16px) }
-
-  /* QR — встроенный сайд-бейдж на правой кромке */
-  .qrBox{
-    position:absolute; right:-4px; top:50%; transform:translateY(-50%);
-    z-index:5; padding:12px 12px 10px 14px;
-    border-radius:16px 0 0 16px;
-    background:rgba(18,22,30,.60);
-    border-left:1px solid rgba(255,255,255,.10);
-    border-top:1px solid rgba(255,255,255,.06);
-    border-bottom:1px solid rgba(255,255,255,.06);
-    backdrop-filter: blur(8px);
-    box-shadow:0 12px 28px rgba(0,0,0,.45);
-    display:flex; flex-direction:column; align-items:center; gap:8px;
-  }
-  .qrImg{ width:132px; height:132px; display:block; border-radius:8px }
-  .qrCap{
-    padding:5px 10px; border-radius:999px;
-    background:rgba(255,255,255,.08);
-    border:1px solid rgba(255,255,255,.10);
-    color:#E8EEF6; font-weight:600;
-    font-size:12px; letter-spacing:.02em; white-space:nowrap;
-  }
-
-  @media (max-width:780px){
-    .card{ grid-template-columns:1fr; padding:20px 18px; gap:18px; min-height:auto }
-    .photoWrap{ order:-1; max-width:84vw; margin:0 auto; border-radius:16px }
-    .photo{ border-radius:16px }
-    .name{ font-size:clamp(28px,8vw,40px); line-height:1.08; word-wrap:anywhere; hyphens:auto }
-    .role{ font-size:clamp(14px,4.2vw,18px); margin:.35em 0 1em }
-    .contacts{ gap:10px 14px }
-    .pill{ font-size:14px }
-    .sec h3{ font-size:13px }
-    .sec p{ font-size:15px; line-height:1.45 }
-    .strip{ padding:10px 12px; font-size:12px }
-    .qrBox{
-      right:10px; top:10px; transform:none;
-      border-radius:12px; border:1px solid rgba(255,255,255,.10);
-      padding:10px; box-shadow:0 8px 20px rgba(0,0,0,.35);
-    }
-    .qrImg{ width:98px; height:98px }
-  }
-</style>
-</head>
-<body>
-<main class="stage">
-  <section class="card" id="card">
-    <div class="photoWrap">
-      <!-- любое своё фото можно подставить сюда -->
-      <img class="photo" alt=""
-           src="https://images.unsplash.com/photo-1544723795-3fb6469f5b39?q=80&w=1200&auto=format&fit=crop"/>
-    </div>
-
-    <div class="right">
-      <h1 class="name">Екатерина<br>Иванова</h1>
-      <div class="role">Страховой агент, Инссмарт</div>
-
-      <div class="contacts">
-        <a class="pill" href="tel:+79991234567" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.8-.4 1.2-.2 1.3.5 2.7.8 4.1.8.7 0 1.3.6 1.3 1.3V21c0 .7-.6 1.3-1.3 1.3C9.8 22.3 1.7 14.2 1.7 3.3 1.7 2.6 2.3 2 3 2h3.7c.7 0 1.3.6 1.3 1.3 0 1.4.3 2.8.8 4.1.1.4 0 .9-.3 1.2l-2 2.2z"/></svg>
-          +7 999 123-45-67
-        </a>
-        <a class="pill" href="mailto:agent@example.com" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 13 1.5 6.75V18a2 2 0 0 0 2 2h17a2 2 0 0 0 2-2V6.75L12 13zm0-2.5L22.5 4H1.5L12 10.5z"/></svg>
-          agent@example.com
-        </a>
-        <a class="pill" href="https://t.me/insmart_demo" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.04 15.34 8.9 18.9c.41 0 .59-.18.81-.4l1.94-1.86 4.02 2.95c.74.41 1.26.2 1.46-.69l2.64-12.41c.27-1.25-.45-1.73-1.17-1.43L3.4 9.55c-1.2.47-1.18 1.14-.2 1.45l4.9 1.53 11.37-7.17c.53-.33 1.01-.15.61.18L9.04 15.34z"/></svg>
-          t.me/insmart_demo
-        </a>
-      </div>
-
-      <div class="sec"><h3>О себе:</h3><p>
-        Помогаю клиентам разбираться в продуктах и выбирать главное. 10+ лет в страховании.
-      </p></div>
-      <div class="sec"><h3>Запрос:</h3><p>
-        Ищу партнёров по регионам и площадки для совместных акций.
-      </p></div>
-    </div>
-
-    <!-- QR — без JS-библиотек: статичное изображение с сервиса -->
-    <div class="qrBox">
-      <img class="qrImg"
-           src="https://api.qrserver.com/v1/create-qr-code/?size=132x132&data=https%3A%2F%2Ft.me%2Finsmart_demo"
-           alt="QR to Telegram"/>
-      <div class="qrCap">@insmart_demo</div>
-    </div>
-
-    <div class="strip">ДЛЯ РАЗМЕЩЕНИЯ ВАШЕЙ ВИЗИТКИ НА ЭТОМ ЭКРАНЕ ПОДОЙДИТЕ НА ЗОНУ РЕГИСТРАЦИИ</div>
-  </section>
-</main>
-</body>
-</html>
+  /* Правая колонка */
+  .name{margin:0; line-height:.98; font-weight:800; letter-spacing:.01em;
+        font-size:clamp(42px,6vw,86px)}
+  .role{margin:.5rem 0 1.2rem; color:var(--muted); font-size:clamp(16px,2.1vw,24px)}
+  .contacts{display:flex; flex-wrap:wrap; gap:14px
