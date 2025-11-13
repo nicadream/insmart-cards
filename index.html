@@ -184,4 +184,114 @@
   // ==== 30 секунд ====
   const INTERVAL = 30000;
 
-  le
+  let IMAGE_URLS = [];
+  let current = 0;
+  let timer   = null;
+
+  function setStatus(text) {
+    if (!statusEl) return;
+    statusEl.textContent = text;
+  }
+
+  function hideStatus() {
+    if (statusEl) statusEl.remove();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = '';
+    IMAGE_URLS.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i === current ? ' is-active' : '');
+      dotsEl.appendChild(d);
+    });
+  }
+
+  function showSlide(index) {
+    if (!IMAGE_URLS.length) return;
+    current = (index + IMAGE_URLS.length) % IMAGE_URLS.length;
+
+    slideEl.classList.remove('is-visible');
+    setTimeout(() => {
+      slideEl.src = IMAGE_URLS[current];
+    }, 80);
+  }
+
+  slideEl.addEventListener('load', () => {
+    slideEl.classList.add('is-visible');
+    renderDots();
+  });
+
+  function next() { showSlide(current + 1); }
+  function prev() { showSlide(current - 1); }
+
+  function startTimer() {
+    clearInterval(timer);
+    timer = setInterval(next, INTERVAL);
+  }
+
+  btnNext.onclick = () => { next(); startTimer(); };
+  btnPrev.onclick = () => { prev(); startTimer(); };
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { next(); startTimer(); }
+    else if (e.key === 'ArrowLeft') { prev(); startTimer(); }
+  });
+
+  const sliderEl = document.querySelector('.slider');
+  sliderEl.addEventListener('mouseenter', () => clearInterval(timer));
+  sliderEl.addEventListener('mouseleave', () => startTimer());
+
+  let touchX = null;
+  sliderEl.addEventListener('touchstart', (e) => {
+    touchX = e.touches[0].clientX;
+  }, { passive: true });
+
+  sliderEl.addEventListener('touchend', (e) => {
+    if (touchX == null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    touchX = null;
+    if (Math.abs(dx) < 40) return;
+    if (dx < 0) next(); else prev();
+    startTimer();
+  }, { passive: true });
+
+  // === загрузка GitHub ===
+  async function loadImagesFromGitHub() {
+    try {
+      const apiUrl =
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${IMAGE_PATH}?ref=${GITHUB_BRANCH}`;
+
+      const res = await fetch(apiUrl);
+      const data = await res.json();
+
+      const files = data.filter(item => {
+        if (item.type !== 'file') return false;
+        const n = item.name.toLowerCase();
+        return IMAGE_EXTS.some(ext => n.endsWith(ext));
+      });
+
+      IMAGE_URLS = files.map(f => f.download_url);
+
+      if (!IMAGE_URLS.length) {
+        setStatus('Нет изображений в cards/');
+        return;
+      }
+
+      hideStatus();
+      showSlide(0);
+
+    } catch (err) {
+      console.error(err);
+      setStatus('Ошибка загрузки из GitHub');
+    }
+  }
+
+  loadImagesFromGitHub().then(() => {
+    setTimeout(() => {
+      if (IMAGE_URLS.length) startTimer();
+    }, 500);
+  });
+</script>
+
+</body>
+</html>
