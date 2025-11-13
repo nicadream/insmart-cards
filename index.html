@@ -1,45 +1,276 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Витрина визиток — референс</title>
-<style>
-  :root{
-    --bg:#0b0e13; --txt:#fff; --muted:#cfd8e3;
-    --grad1:#5A7CE7; --grad2:#7B3DF0;
-    --label:#9AF4EA;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--txt);
-    font-family: Inter, -apple-system, Segoe UI, Roboto, Arial, sans-serif}
+  <meta charset="utf-8" />
+  <title>Слайдер визиток</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
-  .stage{min-height:100vh;display:grid;place-items:center;padding:28px}
-  .card{
-    width:min(1280px,96vw); min-height:640px; position:relative; overflow:hidden;
-    border-radius:28px; padding:40px; display:grid; gap:40px;
-    grid-template-columns: 400px 1fr; align-items:start;
-    background:
-      radial-gradient(1100px 720px at 72% 8%, rgba(122,61,240,.45), transparent 58%),
-      radial-gradient(900px 640px at 40% 32%, rgba(90,124,231,.38), transparent 60%),
-      linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-    box-shadow: 0 30px 70px rgba(0,0,0,.55);
-    animation: fly .45s ease-out;
-  }
-  @keyframes fly{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+  <style>
+    :root {
+      --bg: #050711;
+      --accent: #5A7CE7;
+      --accent2: #E33D8C;
+      --txt: #ffffff;
+    }
 
-  /* Левый портрет в светлом контейнере */
-  .photoWrap{
-    background:linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
-    padding:16px; border-radius:24px; backdrop-filter:blur(6px);
-    border:1px solid rgba(255,255,255,.18);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 10px 26px rgba(0,0,0,.35);
-    align-self:start;
-  }
-  .photo{display:block; width:100%; aspect-ratio:3/4; object-fit:cover; border-radius:18px}
+    * {
+      box-sizing: border-box;
+    }
 
-  /* Правая колонка */
-  .name{margin:0; line-height:.98; font-weight:800; letter-spacing:.01em;
-        font-size:clamp(42px,6vw,86px)}
-  .role{margin:.5rem 0 1.2rem; color:var(--muted); font-size:clamp(16px,2.1vw,24px)}
-  .contacts{display:flex; flex-wrap:wrap; gap:14px
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(1200px 800px at 70% 5%, rgba(90,124,231,.45), transparent 60%),
+        radial-gradient(900px 700px at 15% 90%, rgba(227,61,140,.35), transparent 60%),
+        var(--bg);
+      color: var(--txt);
+      overflow: hidden;
+    }
+
+    .root {
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 12px;
+    }
+
+    .slider {
+      position: relative;
+      width: min(1280px, 100%);
+      height: min(720px, 100%);
+      border-radius: 24px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 28px 80px rgba(0,0,0,.85);
+    }
+
+    .slide-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain; /* визитки целиком, без обрезки */
+      background: #000;
+      opacity: 0;
+      transform: scale(1.01);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+
+    .slide-img.is-visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      border-radius: 999px;
+      border: none;
+      outline: none;
+      background: rgba(5,7,20,.7);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      cursor: pointer;
+      box-shadow: 0 8px 30px rgba(0,0,0,.6);
+      transition: background .2s ease, transform .1s ease, opacity .2s ease;
+      opacity: .85;
+      z-index: 5;
+    }
+
+    .nav:hover {
+      background: rgba(5,7,20,.95);
+      transform: translateY(-50%) scale(1.05);
+    }
+
+    .nav:active {
+      transform: translateY(-50%) scale(.96);
+    }
+
+    .nav-left { left: 14px; }
+    .nav-right { right: 14px; }
+
+    .dots {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      z-index: 4;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.24);
+      transition: width .2s ease, background .2s ease;
+    }
+
+    .dot.is-active {
+      width: 28px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+
+    .hint {
+      position: fixed;
+      left: 8px;
+      bottom: 6px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: rgba(5,7,20,.8);
+      color: rgba(255,255,255,.7);
+      font-size: 12px;
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+
+    @media (max-width: 640px) {
+      .slider {
+        border-radius: 16px;
+      }
+      .nav {
+        width: 36px;
+        height: 36px;
+        font-size: 22px;
+      }
+      .nav-left { left: 6px; }
+      .nav-right { right: 6px; }
+    }
+  </style>
+</head>
+<body>
+<div class="root">
+  <div class="slider">
+    <img id="slide" class="slide-img" src="" alt="Визитка" />
+    <button class="nav nav-left" id="btn-prev" aria-label="Назад">‹</button>
+    <button class="nav nav-right" id="btn-next" aria-label="Вперёд">›</button>
+    <div class="dots" id="dots"></div>
+  </div>
+</div>
+
+<div class="hint">
+  Автосмена слайда каждые 15 секунд • Нажми ◀ / ▶ для ручного переключения
+</div>
+
+<script>
+  // СЮДА ВСТАВЛЯЕШЬ ССЫЛКИ НА КАРТИНКИ С ЯНДЕКС.ДИСКА
+  const IMAGE_URLS = [
+    // Пример:
+    // 'https://downloader.disk.yandex.ru/preview/....1',
+    // 'https://downloader.disk.yandex.ru/preview/....2',
+    // 'https://downloader.disk.yandex.ru/preview/....3',
+  ];
+
+  // Если вдруг забудешь добавить — не ломаемся
+  if (!IMAGE_URLS.length) {
+    console.warn('IMAGE_URLS пуст. Добавь сюда ссылки на визитки с Яндекс.Диска.');
+  }
+
+  const slideEl = document.getElementById('slide');
+  const dotsEl  = document.getElementById('dots');
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+
+  const INTERVAL = 15000; // 15 секунд
+  let current = 0;
+  let timer   = null;
+
+  // Создаём точки-индикаторы
+  function renderDots() {
+    dotsEl.innerHTML = '';
+    IMAGE_URLS.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i === current ? ' is-active' : '');
+      dotsEl.appendChild(d);
+    });
+  }
+
+  function showSlide(index) {
+    if (!IMAGE_URLS.length) return;
+
+    current = (index + IMAGE_URLS.length) % IMAGE_URLS.length;
+    const url = IMAGE_URLS[current];
+
+    slideEl.classList.remove('is-visible');
+
+    // когда старая анимация отработала, меняем src
+    setTimeout(() => {
+      slideEl.src = url;
+    }, 80);
+  }
+
+  slideEl.addEventListener('load', () => {
+    slideEl.classList.add('is-visible');
+    renderDots();
+  });
+
+  function next() {
+    showSlide(current + 1);
+  }
+
+  function prev() {
+    showSlide(current - 1);
+  }
+
+  function startTimer() {
+    clearInterval(timer);
+    timer = setInterval(next, INTERVAL);
+  }
+
+  btnNext.addEventListener('click', () => {
+    next();
+    startTimer();
+  });
+
+  btnPrev.addEventListener('click', () => {
+    prev();
+    startTimer();
+  });
+
+  // Стрелки на клавиатуре
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') {
+      next();
+      startTimer();
+    } else if (e.key === 'ArrowLeft') {
+      prev();
+      startTimer();
+    }
+  });
+
+  // Пауза по наведению (на десктопе)
+  const sliderEl = document.querySelector('.slider');
+  sliderEl.addEventListener('mouseenter', () => clearInterval(timer));
+  sliderEl.addEventListener('mouseleave', () => startTimer());
+
+  // Свайпы на телефоне
+  let touchX = null;
+  sliderEl.addEventListener('touchstart', (e) => {
+    touchX = e.touches[0].clientX;
+  }, { passive: true });
+
+  sliderEl.addEventListener('touchend', (e) => {
+    if (touchX == null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    touchX = null;
+    if (Math.abs(dx) < 40) return;
+    if (dx < 0) next(); else prev();
+    startTimer();
+  }, { passive: true });
+
+  // Старт
+  if (IMAGE_URLS.length) {
+    showSlide(0);
+    startTimer();
+  }
+</script>
+</body>
+</html>
