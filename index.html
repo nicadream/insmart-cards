@@ -147,64 +147,42 @@
       padding: 16px;
     }
 
-    @media (max-width: 640px) {
-      .slider {
-        border-radius: 16px;
-      }
-      .nav {
-        width: 36px;
-        height: 36px;
-        font-size: 22px;
-      }
-      .nav-left { left: 6px; }
-      .nav-right { right: 6px; }
-    }
   </style>
 </head>
 <body>
 <div class="root">
   <div class="slider">
     <div id="status" class="status">
-      Загружаю визитки из папки Яндекс.Диска…
+      Загружаю визитки из Яндекс.Диска…
     </div>
     <img id="slide" class="slide-img" src="" alt="Визитка" />
-    <button class="nav nav-left" id="btn-prev" aria-label="Назад">‹</button>
-    <button class="nav nav-right" id="btn-next" aria-label="Вперёд">›</button>
+    <button class="nav nav-left" id="btn-prev">‹</button>
+    <button class="nav nav-right" id="btn-next">›</button>
     <div class="dots" id="dots"></div>
   </div>
 </div>
 
 <div class="hint">
-  Автосмена слайда каждые 15 секунд • Нажми ◀ / ▶ для ручного переключения
+  Автосмена каждые 15 секунд • Можно листать стрелками ◀ ▶
 </div>
 
 <script>
-  // 
   const PUBLIC_LINK = 'https://disk.yandex.ru/d/gt4nmimrNpvpxQ';
-
   const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp'];
 
-  const slideEl  = document.getElementById('slide');
-  const dotsEl   = document.getElementById('dots');
-  const btnPrev  = document.getElementById('btn-prev');
-  const btnNext  = document.getElementById('btn-next');
+  const slideEl = document.getElementById('slide');
+  const dotsEl  = document.getElementById('dots');
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
   const statusEl = document.getElementById('status');
 
-  const INTERVAL = 15000; // 15 секунд
+  const INTERVAL = 15000;
   let IMAGE_URLS = [];
   let current = 0;
-  let timer   = null;
+  let timer = null;
 
-  function setStatus(text) {
-    if (!statusEl) return;
-    statusEl.textContent = text;
-  }
-
-  function hideStatus() {
-    if (statusEl) {
-      statusEl.remove();
-    }
-  }
+  function setStatus(t) { statusEl.textContent = t; }
+  function hideStatus() { statusEl.remove(); }
 
   function renderDots() {
     dotsEl.innerHTML = '';
@@ -216,15 +194,9 @@
   }
 
   function showSlide(index) {
-    if (!IMAGE_URLS.length) return;
     current = (index + IMAGE_URLS.length) % IMAGE_URLS.length;
-    const url = IMAGE_URLS[current];
-
     slideEl.classList.remove('is-visible');
-
-    setTimeout(() => {
-      slideEl.src = url;
-    }, 80);
+    setTimeout(() => { slideEl.src = IMAGE_URLS[current]; }, 80);
   }
 
   slideEl.addEventListener('load', () => {
@@ -232,139 +204,17 @@
     renderDots();
   });
 
-  function next() {
-    showSlide(current + 1);
-  }
+  function next() { showSlide(current + 1); }
+  function prev() { showSlide(current - 1); }
+  function startTimer() { clearInterval(timer); timer = setInterval(next, INTERVAL); }
 
-  function prev() {
-    showSlide(current - 1);
-  }
+  btnNext.onclick = () => { next(); startTimer(); };
+  btnPrev.onclick = () => { prev(); startTimer(); };
 
-  function startTimer() {
-    clearInterval(timer);
-    timer = setInterval(next, INTERVAL);
-  }
-
-  btnNext.addEventListener('click', () => {
-    next();
-    startTimer();
-  });
-
-  btnPrev.addEventListener('click', () => {
-    prev();
-    startTimer();
-  });
-
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') {
-      next();
-      startTimer();
-    } else if (e.key === 'ArrowLeft') {
-      prev();
-      startTimer();
-    }
-  });
-
-  const sliderEl = document.querySelector('.slider');
-  sliderEl.addEventListener('mouseenter', () => clearInterval(timer));
-  sliderEl.addEventListener('mouseleave', () => startTimer());
-
-  let touchX = null;
-  sliderEl.addEventListener('touchstart', (e) => {
-    touchX = e.touches[0].clientX;
-  }, { passive: true });
-
-  sliderEl.addEventListener('touchend', (e) => {
-    if (touchX == null) return;
-    const dx = e.changedTouches[0].clientX - touchX;
-    touchX = null;
-    if (Math.abs(dx) < 40) return;
-    if (dx < 0) next(); else prev();
-    startTimer();
-  }, { passive: true });
-
-  // --- ЗАГРУЗКА СПИСКА ФАЙЛОВ ИЗ ЯНДЕКС.ДИСКА ---
-
-  async function loadImagesFromYandex() {
-    if (!PUBLIC_LINK || PUBLIC_LINK.includes('XXXXXXXX')) {
-      setStatus('Укажи PUBLIC_LINK — публичную ссылку на папку с визитками.');
-      return;
-    }
-
+  // --- ЗАГРУЗКА ЧЕРЕЗ ПРОКСИ ---
+  async function loadImages() {
     try {
-      const apiUrl =
-        'https://cloud-api.yandex.net/v1/disk/public/resources' +
-        '?public_key=' + encodeURIComponent(PUBLIC_LINK) +
-        '&limit=1000' +
-        '&preview_size=XL' +
-        '&preview_crop=true';
-
-      const res = await fetch(apiUrl);
-      if (!res.ok) {
-        throw new Error('Ошибка загрузки: ' + res.status);
-      }
-
-      const data = await res.json();
-      console.log('Yandex data:', data);
-
-      let items = [];
-
-      // Если по ссылке один файл
-      if (data.type === 'file') {
-        items = [data];
-      }
-      // Если папка — у неё внутри _embedded.items
-      else if (data._embedded && Array.isArray(data._embedded.items)) {
-        items = data._embedded.items;
-      }
-
-      if (!items.length) {
-        setStatus('В ресурсе по ссылке нет файлов. Проверь, что PUBLIC_LINK — это именно папка или файл с визитками.');
-        return;
-      }
-
-      const images = items.filter(item => {
-        if (item.type !== 'file') return false;
-        const name = (item.name || '').toLowerCase();
-        return IMAGE_EXTS.some(ext => name.endsWith(ext));
-      });
-
-      if (!images.length) {
-        setStatus('Не найдено изображений с расширениями: ' + IMAGE_EXTS.join(', '));
-        return;
-      }
-
-      IMAGE_URLS = images
-        .map(item => {
-          // 1) прямой файл, если Яндекс дал
-          if (item.file) return item.file;
-          // 2) превью (cloud-api всегда умеет их делать)
-          if (item.preview) return item.preview;
-          // 3) на всякий случай
-          if (item._links && item._links.self && item._links.self.href) {
-            return item._links.self.href;
-          }
-          return null;
-        })
-        .filter(Boolean);
-
-      if (!IMAGE_URLS.length) {
-        setStatus('Не удалось получить ссылки на файлы. Проверь настройки публичного доступа.');
-        return;
-      }
-
-      hideStatus();
-      showSlide(0);
-      startTimer();
-
-    } catch (err) {
-      console.error(err);
-      setStatus('Не удалось загрузить визитки. Возможно, Яндекс.Диск режет запросы из браузера (CORS).');
-    }
-  }
-
-  loadImagesFromYandex();
-</script>
-</body>
-</html>
-
+      const url = 
+        'https://yacors.fly.dev/?url=' +
+        encodeURIComponent(
+          'https:/
