@@ -1,3 +1,7 @@
+---
+layout: null
+---
+
 <!doctype html>
 <html lang="ru">
 <head>
@@ -120,19 +124,6 @@
       background: linear-gradient(90deg, var(--accent), var(--accent2));
     }
 
-    .hint {
-      position: fixed;
-      left: 8px;
-      bottom: 6px;
-      padding: 6px 10px;
-      border-radius: 10px;
-      background: rgba(5,7,20,.8);
-      color: rgba(255,255,255,.7);
-      font-size: 12px;
-      backdrop-filter: blur(8px);
-      z-index: 10;
-    }
-
     @media (max-width: 640px) {
       .slider { border-radius: 16px; }
       .nav {
@@ -145,35 +136,28 @@
     }
   </style>
 </head>
+
 <body>
 <div class="root">
   <div class="slider">
     <img id="slide" class="slide-img" src="" alt="Визитка" />
-    <button class="nav nav-left" id="btn-prev" aria-label="Назад">‹</button>
-    <button class="nav nav-right" id="btn-next" aria-label="Вперёд">›</button>
+    <button class="nav nav-left" id="btn-prev">‹</button>
+    <button class="nav nav-right" id="btn-next">›</button>
     <div class="dots" id="dots"></div>
   </div>
 </div>
 
-<div class="hint">
-  Автосмена слайда каждые 30 секунд • Стрелки ◀ ▶ работают вручную
-</div>
-
 <script>
-  // 👉 Список визиток в папке /cards
-  // Если добавишь новый файл в cards — просто добавь строку сюда:
+  // 🔁 АВТОМАТИЧЕСКИЙ СПИСОК ФАЙЛОВ ИЗ /cards
+  // (генерится Jekyll'ом на этапе сборки GitHub Pages)
   const IMAGE_URLS = [
-    'cards/Батракова.png',
-    'cards/Визитка Заонегина.png',
-    'cards/Визитка Ионушкина.png',
-    'cards/Визитка Каплунов.png',
-    'cards/Визитка Kreeр.png',
-    'cards/Визитка Малинина.png',
-    'cards/Визитка Сосонская.png',
-    'cards/Дюпина.png',
-    'cards/Комаченко.png',
-    'cards/Лачин.png',
-    // 'cards/Молдова.png',  // и так далее — дописывай по мере надобности
+  {% assign exts = ".png,.jpg,.jpeg,.webp" | split: "," %}
+  {% for file in site.static_files %}
+    {% assign ext = file.extname | downcase %}
+    {% if file.path contains "/cards/" and exts contains ext %}
+      "{{ file.path | relative_url }}",
+    {% endif %}
+  {% endfor %}
   ];
 
   const slideEl = document.getElementById('slide');
@@ -229,26 +213,12 @@
   sliderEl.addEventListener('mouseenter', () => clearInterval(timer));
   sliderEl.addEventListener('mouseleave', () => startTimer());
 
-  let touchX = null;
-  sliderEl.addEventListener('touchstart', (e) => {
-    touchX = e.touches[0].clientX;
-  }, { passive: true });
-
-  sliderEl.addEventListener('touchend', (e) => {
-    if (touchX == null) return;
-    const dx = e.changedTouches[0].clientX - touchX;
-    touchX = null;
-    if (Math.abs(dx) < 40) return;
-    if (dx < 0) next(); else prev();
-    startTimer();
-  }, { passive: true });
-
   // старт
   if (IMAGE_URLS.length) {
     showSlide(0);
     startTimer();
   } else {
-    console.warn('IMAGE_URLS пуст — добавь туда пути к визиткам из папки cards/');
+    console.warn('IMAGE_URLS пуст — проверь, что в /cards есть картинки.');
   }
 </script>
 </body>
