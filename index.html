@@ -1,5 +1,272 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Слайдер визиток</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+  <style>
+    :root {
+      --bg: #050711;
+      --accent: #5A7CE7;
+      --accent2: #E33D8C;
+      --txt: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(1200px 800px at 70% 5%, rgba(90,124,231,.45), transparent 60%),
+        radial-gradient(900px 700px at 15% 90%, rgba(227,61,140,.35), transparent 60%),
+        var(--bg);
+      color: var(--txt);
+      overflow: hidden;
+    }
+
+    .root {
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 12px;
+    }
+
+    .slider {
+      position: relative;
+      width: min(1280px, 100%);
+      height: min(720px, 100%);
+      border-radius: 24px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 28px 80px rgba(0,0,0,.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slide-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+      opacity: 0;
+      transform: scale(1.01);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+
+    .slide-img.is-visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      border-radius: 999px;
+      border: none;
+      outline: none;
+      background: rgba(5,7,20,.7);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      cursor: pointer;
+      box-shadow: 0 8px 30px rgba(0,0,0,.6);
+      transition: background .2s ease, transform .1s ease, opacity .2s ease;
+      opacity: .85;
+      z-index: 5;
+    }
+
+    .nav:hover {
+      background: rgba(5,7,20,.95);
+      transform: translateY(-50%) scale(1.05);
+    }
+
+    .nav:active {
+      transform: translateY(-50%) scale(.96);
+    }
+
+    .nav-left { left: 14px; }
+    .nav-right { right: 14px; }
+
+    .dots {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      z-index: 4;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.24);
+      transition: width .2s ease, background .2s ease;
+    }
+
+    .dot.is-active {
+      width: 28px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+
+    .hint {
+      position: fixed;
+      left: 8px;
+      bottom: 6px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: rgba(5,7,20,.8);
+      color: rgba(255,255,255,.7);
+      font-size: 12px;
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+
+    .status {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: rgba(255,255,255,.7);
+      text-align: center;
+      padding: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .slider {
+        border-radius: 16px;
+      }
+      .nav {
+        width: 36px;
+        height: 36px;
+        font-size: 22px;
+      }
+      .nav-left { left: 6px; }
+      .nav-right { right: 6px; }
+    }
+  </style>
+</head>
+<body>
+<div class="root">
+  <div class="slider">
+    <div id="status" class="status">
+      Загружаю визитки из репозитория GitHub…
+    </div>
+    <img id="slide" class="slide-img" src="" alt="Визитка" />
+    <button class="nav nav-left" id="btn-prev" aria-label="Назад">‹</button>
+    <button class="nav nav-right" id="btn-next" aria-label="Вперёд">›</button>
+    <div class="dots" id="dots"></div>
+  </div>
+</div>
+
+<div class="hint">
+  Автосмена слайда каждые 15 секунд • Нажми ◀ / ▶ для ручного переключения
+</div>
+
 <script>
-  // ... весь код выше не меняем ...
+  // --- НАСТРОЙКИ GITHUB ---
+  // Если что-то поменяешь (имя аккаунта/репо/ветки/папки), правь здесь.
+  const GITHUB_OWNER  = 'nicadream';
+  const GITHUB_REPO   = 'insmart-cards';
+  const GITHUB_BRANCH = 'main';   // или 'master', если у тебя так
+  const IMAGE_PATH    = 'cards';  // папка с визитками внутри репо
+
+  const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp'];
+
+  const slideEl  = document.getElementById('slide');
+  const dotsEl   = document.getElementById('dots');
+  const btnPrev  = document.getElementById('btn-prev');
+  const btnNext  = document.getElementById('btn-next');
+  const statusEl = document.getElementById('status');
+
+  const INTERVAL = 15000;
+  let IMAGE_URLS = [];
+  let current = 0;
+  let timer   = null;
+
+  function setStatus(text) {
+    if (!statusEl) return;
+    statusEl.textContent = text;
+  }
+
+  function hideStatus() {
+    if (statusEl) statusEl.remove();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = '';
+    IMAGE_URLS.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i === current ? ' is-active' : '');
+      dotsEl.appendChild(d);
+    });
+  }
+
+  function showSlide(index) {
+    if (!IMAGE_URLS.length) return;
+    current = (index + IMAGE_URLS.length) % IMAGE_URLS.length;
+
+    slideEl.classList.remove('is-visible');
+    setTimeout(() => {
+      slideEl.src = IMAGE_URLS[current];
+    }, 80);
+  }
+
+  slideEl.addEventListener('load', () => {
+    slideEl.classList.add('is-visible');
+    renderDots();
+  });
+
+  function next() { showSlide(current + 1); }
+  function prev() { showSlide(current - 1); }
+
+  function startTimer() {
+    clearInterval(timer);
+    timer = setInterval(next, INTERVAL);
+  }
+
+  btnNext.addEventListener('click', () => { next(); startTimer(); });
+  btnPrev.addEventListener('click', () => { prev(); startTimer(); });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { next(); startTimer(); }
+    else if (e.key === 'ArrowLeft') { prev(); startTimer(); }
+  });
+
+  const sliderEl = document.querySelector('.slider');
+  sliderEl.addEventListener('mouseenter', () => clearInterval(timer));
+  sliderEl.addEventListener('mouseleave', () => startTimer());
+
+  let touchX = null;
+  sliderEl.addEventListener('touchstart', (e) => {
+    touchX = e.touches[0].clientX;
+  }, { passive: true });
+
+  sliderEl.addEventListener('touchend', (e) => {
+    if (touchX == null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    touchX = null;
+    if (Math.abs(dx) < 40) return;
+    if (dx < 0) next(); else prev();
+    startTimer();
+  }, { passive: true });
+
+  // --- ЗАГРУЗКА СПИСКА КАРТИНОК ИЗ GITHUB ---
 
   async function loadImagesFromGitHub() {
     try {
@@ -11,42 +278,47 @@
         '?ref=' + encodeURIComponent(GITHUB_BRANCH);
 
       const res = await fetch(apiUrl);
-      if (!res.ok) throw new Error('GitHub API error: ' + res.status);
+      if (!res.ok) {
+        throw new Error('GitHub API error: ' + res.status);
+      }
 
       const data = await res.json();
       if (!Array.isArray(data)) {
-        setStatus('Не удалось прочитать папку');
+        setStatus('Не удалось прочитать содержимое папки ' + IMAGE_PATH);
         return;
       }
 
       const files = data.filter(item => {
         if (item.type !== 'file') return false;
-        const n = item.name.toLowerCase();
-        return IMAGE_EXTS.some(ext => n.endsWith(ext));
+        const name = (item.name || '').toLowerCase();
+        return IMAGE_EXTS.some(ext => name.endsWith(ext));
       });
 
-      IMAGE_URLS = files.map(item => item.download_url);
+      if (!files.length) {
+        setStatus('В папке "' + IMAGE_PATH + '" нет картинок ' + IMAGE_EXTS.join(', '));
+        return;
+      }
+
+      IMAGE_URLS = files
+        .map(item => item.download_url)
+        .filter(Boolean);
 
       if (!IMAGE_URLS.length) {
-        setStatus('Нет картинок');
+        setStatus('Файлы найдены, но нет download_url. Проверь репозиторий.');
         return;
       }
 
       hideStatus();
       showSlide(0);
+      startTimer();
 
     } catch (err) {
       console.error(err);
-      setStatus('Ошибка загрузки из GitHub');
+      setStatus('Ошибка загрузки из GitHub. Проверь имя репо/ветки/папки.');
     }
   }
 
-  loadImagesFromGitHub().then(() => {
-    // страховка, чтобы автолистание запускалось всегда
-    setTimeout(() => {
-      if (IMAGE_URLS.length > 0) {
-        startTimer();
-      }
-    }, 500);
-  });
+  loadImagesFromGitHub();
 </script>
+</body>
+</html>
